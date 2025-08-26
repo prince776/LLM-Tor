@@ -16,9 +16,7 @@ jobs:
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          creds: ${{ secrets.AZURE_CREDS_JSON }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
