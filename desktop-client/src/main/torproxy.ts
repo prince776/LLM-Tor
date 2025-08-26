@@ -158,7 +158,7 @@ function doTorProxiedRequestInternal(input: string, init?: RequestInit): Promise
 function getTorPath(): string | null {
   let torPath: string
   let basePath = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', '..') // Adjust this path to point to your project's root
-  basePath = path.join(basePath, 'prod-deps', 'tor-dist')
+  basePath = path.join(basePath, 'app.asar.unpacked', 'prod-deps', 'tor-dist')
 
   if (process.platform === 'win32') {
     if (process.arch === 'x64') {
