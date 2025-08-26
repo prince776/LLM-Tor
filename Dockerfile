@@ -1,14 +1,12 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 # Copy everything except desktop-client directory
 COPY . .
 RUN rm -rf desktop-client
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o llmmask src/main.go
+RUN go build -o llmmask src/main.go
 RUN if [ -d resources ]; then tar -czf resources.tar.gz -C resources .; fi
 
 # Final stage
