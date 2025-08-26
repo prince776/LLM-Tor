@@ -7,6 +7,7 @@ declare global {
     api: {
       generateToken: (requestData: GenerateTokenReq) => Promise<GenerateTokenResp>
       llmProxy: (req: LLMProxyReq) => Promise<LLMProxyResp>
+      startAuth: () => Promise<void>
     }
   }
 }

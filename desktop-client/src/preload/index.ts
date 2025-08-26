@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { GenerateTokenReq, GenerateTokenResp, LLMProxyReq, LLMProxyResp } from "../types/ipc";
+import type { GenerateTokenReq, GenerateTokenResp, LLMProxyReq, LLMProxyResp } from '../types/ipc'
 
 // Custom APIs for renderer
 const api = {
@@ -11,6 +11,9 @@ const api = {
   llmProxy: async (requestData: LLMProxyReq): Promise<LLMProxyResp> => {
     return await ipcRenderer.invoke('llm-proxy', requestData)
   },
+  startAuth: async (): Promise<void> => {
+    return await ipcRenderer.invoke('start-auth')
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

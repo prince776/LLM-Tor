@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import { SERVER_URL } from '../config'
 import { useError } from './ErrorContext'
+import { shell } from 'electron'
 
 export interface User {
   id: string
@@ -83,7 +84,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, [showError])
 
   const signIn = async () => {
-    window.location.href = `${SERVER_URL}/api/v1/users/signin`
+    // const redirectUrl = 'llmmask://app'
+    // const signInUrl = `${SERVER_URL}/api/v1/users/signin?redirect=${encodeURIComponent(redirectUrl)}`
+    //
+    // window.location.href = signInUrl
+    await window.api.startAuth()
   }
 
   const signOut = () => setUser(null)

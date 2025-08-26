@@ -8,12 +8,18 @@ import log from 'electron-log/main'
 import { GenerateToken } from './rsa'
 import { LLMProxy } from './llmproxy'
 import { doTorProxiedRequest, startTorProxy, stopTorProxy, waitForTor } from './torproxy'
+import { createServer } from 'http'
+import { SERVER_URL } from '../types/config'
 // Initialize the logger to be available in renderer process
 log.initialize()
 
+let mainWindow: BrowserWindow | null = null
+let authWindow: BrowserWindow | null = null
+const REDIRECT_PORT = 5139
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -21,13 +27,14 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      partition: 'persist:app' // ✅ shared partition
     }
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-    mainWindow.maximize()
+    mainWindow?.show()
+    mainWindow?.maximize()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -97,6 +104,11 @@ app.whenReady().then(() => {
     }
   })
 
+  // IPC to start auth from renderer
+  ipcMain.handle('start-auth', () => {
+    startAuthFlow()
+  })
+
   createWindow()
 
   app.on('activate', function () {
@@ -118,3 +130,59 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   stopTorProxy()
 })
+
+function startAuthFlow(): void {
+  const redirectUri = `http://127.0.0.1:${REDIRECT_PORT}/callback`
+
+  // Create local server to capture redirect
+  const server = createServer((req, res) => {
+    if (req.url?.startsWith('/callback')) {
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end('<h1>Sign in successful. You can close this window.</h1>')
+
+      if (authWindow) {
+        authWindow.close()
+        authWindow = null
+      }
+
+      // Reload main window (cookies are already saved in default session)
+      if (mainWindow) {
+        // HMR for renderer base on electron-vite cli.
+        // Load the remote URL for development or the local html file for production.
+        if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+          mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+        } else {
+          mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+        }
+        // mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+      }
+
+      server.close()
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+
+  server.listen(REDIRECT_PORT, () => {
+    const signInUrl = `${SERVER_URL}/api/v1/users/signin?redirect=${encodeURIComponent(redirectUri)}`
+
+    // Popup window for OAuth
+    authWindow = new BrowserWindow({
+      width: 500,
+      height: 700,
+      parent: mainWindow ?? undefined,
+      // modal: true,
+      webPreferences: {
+        nodeIntegration: false,
+        partition: 'persist:app', // ✅ shared partition
+        enableBlinkFeatures: 'CSSBackdropFilter',
+        offscreen: false, // make sure it renders normally
+        webSecurity: true,
+        contextIsolation: true
+      }
+    })
+
+    authWindow.loadURL(signInUrl)
+  })
+}
