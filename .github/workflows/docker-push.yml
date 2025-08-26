@@ -30,5 +30,5 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/llmmaskserver:latest
+          tags: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}.azurecr.io/llmmaskserver:latest
 
