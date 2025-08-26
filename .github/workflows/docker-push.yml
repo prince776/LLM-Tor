@@ -29,6 +29,6 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/arm64
+          platforms: linux/amd64
           tags: ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/llmmaskserver:latest
 
