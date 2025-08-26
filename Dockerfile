@@ -12,6 +12,6 @@ RUN go build -o llmmask src/main.go
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/llmmask ./llmmask
-COPY --from=builder /app/resources ./resources
+#COPY --from=builder /app/resources ./resources
 EXPOSE 8080
 CMD ["./llmmask"]
