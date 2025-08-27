@@ -22,6 +22,8 @@ export function startTorProxy(): void {
 
   // Define the path to the dynamic library
   const torDir = path.dirname(torPath)
+  const geoipPath = path.join(torDir, '..', 'data', 'geoip')
+  const geoip6Path = path.join(torDir, '..', 'data', 'geoip6')
   const libeventPath = path.join(torDir, 'libevent-2.1.7.dylib')
 
   // Self-sign the binaries before starting the process
@@ -32,7 +34,14 @@ export function startTorProxy(): void {
   }
 
   log.info('Starting Tor proxy...')
-  const torArgs = ['--SocksPort', `${TOR_SOCKS_PORT}`]
+  const torArgs = [
+    '--SocksPort',
+    `${TOR_SOCKS_PORT}`,
+    '--GeoIPFile',
+    geoipPath,
+    '--GeoIPv6File',
+    geoip6Path
+  ]
 
   torProcess = spawn(torPath, torArgs)
 
@@ -158,11 +167,14 @@ function doTorProxiedRequestInternal(input: string, init?: RequestInit): Promise
 function getTorPath(): string | null {
   let torPath: string
   let basePath = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', '..') // Adjust this path to point to your project's root
-  basePath = path.join(basePath, 'app.asar.unpacked', 'prod-deps', 'tor-dist')
+  if (app.isPackaged) {
+    basePath = path.join(basePath, 'app.asar.unpacked')
+  }
+  basePath = path.join(basePath, 'prod-deps', 'tor-dist')
 
   if (process.platform === 'win32') {
     if (process.arch === 'x64') {
-      torPath = path.join(basePath, 'windows-x64', 'tor', 'tor.exe')
+      torPath = path.join(basePath, 'windows-x86', 'tor', 'tor.exe')
     } else if (process.arch === 'ia32') {
       torPath = path.join(basePath, 'windows-i686', 'tor', 'tor.exe')
     } else {

@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: desktop-client
+appId: com.llmmask.app
+productName: llmmask
 directories:
   buildResources: build
 files:
@@ -23,9 +23,11 @@ mac:
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDocumentsFoelderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  target:
+    - zip
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
