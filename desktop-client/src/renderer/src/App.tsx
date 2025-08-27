@@ -15,7 +15,7 @@ type Page = 'chat' | 'profile' | 'settings' | 'purchase-tokens'
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [torReady, setTorReady] = useState(false)
+  const [torReady, setTorReady] = useState(true)
 
   const {
     chats,
@@ -32,6 +32,9 @@ function App() {
   useEffect(() => {
     // Listen for the 'tor-ready' IPC message
     if (window.api && window.api.onTorReady) {
+      window.api.onTorSetupBegin(() => {
+        setTorReady(false)
+      })
       window.api.onTorReady(() => {
         setTorReady(true)
       })

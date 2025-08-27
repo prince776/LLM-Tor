@@ -70,6 +70,9 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  if (mainWindow) {
+    mainWindow.webContents.send('tor-setup-begin')
+  }
   startTorProxy()
   waitForTor()
     .then(() => {

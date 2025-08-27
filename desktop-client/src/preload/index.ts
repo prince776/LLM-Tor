@@ -14,6 +14,9 @@ const api = {
   startAuth: async (): Promise<void> => {
     return await ipcRenderer.invoke('start-auth')
   },
+  onTorSetupBegin: (callback: () => void) => {
+    ipcRenderer.on('tor-setup-begin', callback)
+  },
   onTorReady: (callback: () => void) => {
     ipcRenderer.on('tor-ready', callback)
   }
