@@ -8,6 +8,7 @@ declare global {
       generateToken: (requestData: GenerateTokenReq) => Promise<GenerateTokenResp>
       llmProxy: (req: LLMProxyReq) => Promise<LLMProxyResp>
       startAuth: () => Promise<void>
+      onTorReady: (callback: () => void) => Promise<void>
     }
   }
 }

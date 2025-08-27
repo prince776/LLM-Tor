@@ -71,13 +71,22 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   startTorProxy()
-  waitForTor().then(() => {
-    doTorProxiedRequest('https://check.torproject.org/api/ip').then((result) => {
-      result.json().then((result) => {
-        log.info('Tor proxy health check:', result)
+  waitForTor()
+    .then(() => {
+      // Send an IPC message to the renderer process
+      if (mainWindow) {
+        mainWindow.webContents.send('tor-ready')
+      }
+      doTorProxiedRequest('https://check.torproject.org/api/ip').then((result) => {
+        result.json().then((result) => {
+          log.info('Tor proxy health check:', result)
+        })
       })
     })
-  })
+    .catch((error) => {
+      log.error(error)
+      process.exit(1)
+    })
 
   ipcMain.handle(
     'generate-token',

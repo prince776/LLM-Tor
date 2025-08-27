@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { Sidebar } from './components/Sidebar'
 import { ChatInterface } from './components/ChatInterface'
@@ -15,6 +15,7 @@ type Page = 'chat' | 'profile' | 'settings' | 'purchase-tokens'
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [torReady, setTorReady] = useState(false)
 
   const {
     chats,
@@ -27,6 +28,15 @@ function App() {
   } = useChats()
 
   const { user, isLoading } = useUser()
+
+  useEffect(() => {
+    // Listen for the 'tor-ready' IPC message
+    if (window.api && window.api.onTorReady) {
+      window.api.onTorReady(() => {
+        setTorReady(true)
+      })
+    }
+  }, [])
 
   const handleSendMessage = (content: string, role: 'user' | 'assistant') => {
     if (!activeChat) {
@@ -54,6 +64,17 @@ function App() {
           />
         )
     }
+  }
+
+  if (!torReady) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-50 dark:bg-gray-900">
+        <Loader2 className="animate-spin text-blue-500 mb-4" size={48} />
+        <div className="text-gray-700 dark:text-gray-300 text-lg font-medium">
+          Establishing Tor Circuit For Anonymous Connection
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
