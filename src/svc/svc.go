@@ -142,7 +142,7 @@ func (s *Service) StartBackgroundJobs() {
 }
 
 func (s *Service) health(w http.ResponseWriter, r *http.Request) {
-	render.Render(w, r, Ok200("Happy - new version"))
+	render.Render(w, r, Ok200("Happy"))
 }
 
 // CustomPanicHandler recovers from panics and sends a detailed JSON response

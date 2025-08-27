@@ -4,4 +4,4 @@ out
 .DS_Store
 .eslintcache
 *.log*
-prod-deps/
+prod-deps/*
