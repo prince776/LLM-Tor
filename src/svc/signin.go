@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"io"
 	"llmmask/src/common"
+	"llmmask/src/confs"
 	"llmmask/src/log"
 	"llmmask/src/models"
 	"llmmask/src/secrets"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -115,6 +117,19 @@ func (s *Service) signInUser(ctx context.Context, oauthConf *oauth2.Config, toke
 	user.Email = userInfo.Email
 	user.TokenSerialized = tokenEncrypted
 	user.ProfileImage = userInfo.Picture
+
+	// TODO: Remove, Free credits for beta testing.
+	betaTesters := os.Getenv("BETA_TESTERS")
+	log.Infof(ctx, "User is %s, Beta Testers: %s", user.Email, betaTesters)
+	if strings.Contains(betaTesters, user.Email) {
+		log.Infof(ctx, "Giving free credits")
+		user.SubscriptionInfo = models.SubscriptionInfo{
+			ActiveAuthTokens: map[string]int{
+				confs.ModelGemini25Flash: 200,
+				confs.ModelGemini25Pro:   100,
+			},
+		}
+	}
 
 	err = s.dbHandler.Upsert(ctx, user)
 	if err != nil {
