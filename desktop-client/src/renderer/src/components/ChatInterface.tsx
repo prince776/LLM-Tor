@@ -245,23 +245,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ) : (
           <div>
-            {chat?.messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {/* Regenerate Response Button */}
-            {chat?.messages.length > 0 &&
-              chat?.messages[chat.messages.length - 1].role === 'assistant' &&
-              !loadingState.isLoading && (
-                <div className="flex justify-end px-6 pb-2">
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
-                    onClick={handleRegenerateResponse}
-                    disabled={loadingState.isLoading}
-                  >
-                    Regenerate Response
-                  </button>
-                </div>
-              )}
+            {chat?.messages.map((message, idx) => {
+              const isLastAssistant =
+                message.role === 'assistant' &&
+                idx === chat.messages.length - 1 &&
+                !loadingState.isLoading
+              return (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  isLastAssistant={isLastAssistant}
+                  onRegenerate={isLastAssistant ? handleRegenerateResponse : undefined}
+                />
+              )
+            })}
             {loadingState.isLoading && (
               <div className="flex gap-4 p-6 bg-gray-50 dark:bg-gray-800/50">
                 <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">

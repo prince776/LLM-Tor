@@ -11,9 +11,15 @@ import { fetchPfpWithCache } from '../utils/pfpCache'
 
 interface ChatMessageProps {
   message: Message
+  isLastAssistant?: boolean
+  onRegenerate?: () => void
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  isLastAssistant,
+  onRegenerate
+}) => {
   const isUser = message.role === 'user'
   const { user } = useUser()
   const [pfpUrl, setPfpUrl] = useState<string | undefined>(undefined)
@@ -108,9 +114,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             {message.content}
           </ReactMarkdown>
           <div className="flex justify-between items-start">
-            <div className="relative">
+            <div className="relative flex gap-2">
               <button
-                className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
                 title="Copy message"
                 onClick={handleCopy}
                 onMouseEnter={() => setShowTooltip(true)}
@@ -133,6 +139,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2 py-1 text-xs rounded bg-gray-800 text-white whitespace-nowrap z-10 shadow-lg">
                   {copied ? 'Copied!' : 'Copy'}
                 </div>
+              )}
+              {/* Regenerate Response Button (only for last assistant message) */}
+              {isLastAssistant && onRegenerate && (
+                <button
+                  className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors text-xs flex items-center gap-1"
+                  title="Regenerate response"
+                  onClick={onRegenerate}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M1 4v4a4 4 0 0 0 4 4h6" />
+                    <polyline points="15 9 15 5 11 5" />
+                  </svg>
+                  Regenerate
+                </button>
               )}
             </div>
           </div>
