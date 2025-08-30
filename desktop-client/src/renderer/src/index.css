@@ -10,3 +10,16 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Force dull white text in dark mode for better readability */
+.dark .prose, .dark .prose-sm, .dark .prose-invert {
+  color: #e5e7eb !important; /* Tailwind zinc-200 */
+}
+
+.dark .text-gray-900 {
+  color: #e5e7eb !important;
+}
+
+.dark .text-black {
+  color: #e5e7eb !important;
+}
