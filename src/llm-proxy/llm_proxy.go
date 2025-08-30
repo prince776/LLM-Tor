@@ -76,8 +76,6 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		return nil, err
 	}
 
-	log.Infof(ctx, "proxy req: %s", string(proxyReqBody))
-
 	// NOTE: We wanna prefer doing as much parsing as possible before putting load on our auth state.
 	err = req.Sanitize()
 	if err != nil {

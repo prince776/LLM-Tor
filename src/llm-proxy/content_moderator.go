@@ -3,18 +3,29 @@ package llm_proxy
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/cockroachdb/errors"
-	"llmmask/src/log"
+	"llmmask/src/common"
+	"llmmask/src/models"
 	"net/http"
+	"slices"
+)
+
+const (
+	// NOTE: Changing this text chunking size can affect performance and cost as all the deduplication for text
+	// analysis done previously will go to waste.
+	textChunkingSizeForAnalysis = 9000
 )
 
 // ContentModerator is a client wrapper for the Azure AI Content Safety API.
 type ContentModerator struct {
-	endpoint string
-	apiKey   string
-	client   *http.Client
+	endpoint  string
+	apiKey    string
+	client    *http.Client
+	dbHandler *models.DBHandler
 }
 
 // ContentModerationRequest represents the JSON request body for the text analysis API.
@@ -41,18 +52,74 @@ type BlocklistMatch struct {
 }
 
 // NewContentModerator creates a new instance of ContentModerator.
-func NewContentModerator(endpoint, apiKey string) *ContentModerator {
+func NewContentModerator(endpoint string, apiKey string, dbHandler *models.DBHandler) *ContentModerator {
 	return &ContentModerator{
-		endpoint: endpoint,
-		apiKey:   apiKey,
-		client:   http.DefaultClient,
+		endpoint:  endpoint,
+		apiKey:    apiKey,
+		client:    http.DefaultClient,
+		dbHandler: dbHandler,
 	}
 }
 
-// AnalyzeText sends text to the Azure AI Content Safety API for moderation.
 func (cm *ContentModerator) AnalyzeText(ctx context.Context, text string) (*ContentSafetyResponse, error) {
-	log.Infof(ctx, "Checking for moderation")
-	requestBody := ContentModerationRequest{Text: text}
+	categoriesAnalysis := map[string]CategoryAnalysis{}
+	blocklistsMatch := []BlocklistMatch{}
+	for textChunk := range slices.Chunk([]byte(text), textChunkingSizeForAnalysis) {
+		currResp, err := cm.analyzeTextChunkWithCaching(ctx, textChunk)
+		if err != nil {
+			return nil, err
+		}
+		blocklistsMatch = append(blocklistsMatch, currResp.BlocklistsMatch...)
+		for _, categoryAnalysis := range currResp.CategoriesAnalysis {
+			prevAnalysis, ok := categoriesAnalysis[categoryAnalysis.Category]
+			if !ok {
+				prevAnalysis = CategoryAnalysis{Severity: 0, Category: categoryAnalysis.Category}
+			}
+			if categoryAnalysis.Severity > prevAnalysis.Severity {
+				prevAnalysis.Severity = categoryAnalysis.Severity
+			}
+			categoriesAnalysis[categoryAnalysis.Category] = prevAnalysis
+		}
+	}
+
+	categoriesAnalysisArr := []CategoryAnalysis{}
+	for _, categoryAnalysis := range categoriesAnalysis {
+		categoriesAnalysisArr = append(categoriesAnalysisArr, categoryAnalysis)
+	}
+
+	return &ContentSafetyResponse{
+		CategoriesAnalysis: categoriesAnalysisArr,
+		BlocklistsMatch:    blocklistsMatch,
+	}, nil
+}
+
+func (cm *ContentModerator) analyzeTextChunkWithCaching(ctx context.Context, text []byte) (*ContentSafetyResponse, error) {
+	md5Hash := md5.Sum(text)
+	textAnalysisID := base64.StdEncoding.EncodeToString(md5Hash[:])
+	textAnalysis := &models.TextAnalysis{
+		DocID: textAnalysisID,
+	}
+	err := cm.dbHandler.Fetch(ctx, textAnalysis)
+	if err != nil && !models.IsNotFoundErr(err) {
+		return nil, err
+	}
+
+	if textAnalysis.CachedResponse != nil {
+		resp := &ContentSafetyResponse{}
+		err = json.Unmarshal(textAnalysis.CachedResponse, resp)
+		return resp, err
+	}
+
+	resp, err := cm.analyzeTextChunk(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+	textAnalysis.CachedResponse = common.Must(json.Marshal(resp))
+	return resp, cm.dbHandler.Upsert(ctx, textAnalysis)
+}
+
+func (cm *ContentModerator) analyzeTextChunk(ctx context.Context, text []byte) (*ContentSafetyResponse, error) {
+	requestBody := ContentModerationRequest{Text: string(text)}
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal request")

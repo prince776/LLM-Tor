@@ -39,7 +39,7 @@ func main() {
 	dbHandler := models.DefaultDBHandler()
 
 	contentModeratorConf := common.PlatformCredsConfig().ContentModeratorConfig
-	contentModerator := llm_proxy.NewContentModerator(contentModeratorConf.Endpoint, contentModeratorConf.APIKey)
+	contentModerator := llm_proxy.NewContentModerator(contentModeratorConf.Endpoint, contentModeratorConf.APIKey, dbHandler)
 
 	server := svc.NewService(8080, authManagers, apiKeyManager, dbHandler, contentModerator)
 	server.Run()
