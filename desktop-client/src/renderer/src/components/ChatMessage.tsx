@@ -65,62 +65,49 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
       {/* Message Content */}
       <div className="flex-1 min-w-0">
-        <div
-          className="prose prose-sm max-w-full dark:prose-invert mb-4 break-words"
-          style={{
-            lineHeight: 1.8,
-            wordBreak: 'break-word',
-            whiteSpace: 'pre-line',
-            overflowWrap: 'anywhere'
-          }}
-        >
+        <div className="prose prose-sm max-w-full dark:prose-invert mb-4 break-words">
+          <ReactMarkdown
+            remarkPlugins={[remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              hr() {
+                return <hr style={{ margin: '1.5em 0' }} />
+              },
+              code({ node, inline, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '')
+                return !inline && match ? (
+                  <SyntaxHighlighter
+                    style={oneDark}
+                    language={match[1]}
+                    PreTag="div"
+                    customStyle={{
+                      borderRadius: '0.5rem',
+                      fontSize: '0.95em',
+                      margin: 0,
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap'
+                    }}
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                )
+              },
+              p({ children }) {
+                return <p style={{ margin: '0.3em 0' }}>{children}</p>
+              },
+              li({ children }) {
+                return <li style={{ margin: '0.2em 0' }}>{children}</li>
+              }
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
           <div className="flex justify-between items-start">
-            <ReactMarkdown
-              remarkPlugins={[remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                hr() {
-                  return <hr style={{ margin: '1.5em 0' }} />
-                },
-                code({ node, inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || '')
-                  return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={oneDark}
-                      language={match[1]}
-                      PreTag="div"
-                      customStyle={{ borderRadius: '0.5rem', fontSize: '0.95em', margin: 0 }}
-                      {...props}
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  )
-                },
-                p({ children }) {
-                  return (
-                    <p
-                      style={{
-                        margin: '0 0 0.5em 0',
-                        whiteSpace: 'pre-line',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'anywhere'
-                      }}
-                    >
-                      {children}
-                    </p>
-                  )
-                },
-                br() {
-                  return <br />
-                }
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
             <div className="relative">
               <button
                 className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
