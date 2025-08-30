@@ -159,7 +159,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <path d="M1 4v4a4 4 0 0 0 4 4h6" />
                     <polyline points="15 9 15 5 11 5" />
                   </svg>
-                  Regenerate
+                  Regenerate Response
                 </button>
               )}
             </div>
