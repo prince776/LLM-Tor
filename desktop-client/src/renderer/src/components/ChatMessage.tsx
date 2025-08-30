@@ -66,8 +66,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       {/* Message Content */}
       <div className="flex-1 min-w-0">
         <div
-          className="prose prose-sm max-w-none dark:prose-invert mb-4"
-          style={{ lineHeight: 1.8 }}
+          className="prose prose-sm max-w-full dark:prose-invert mb-4 break-words"
+          style={{
+            lineHeight: 1.8,
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-line',
+            overflowWrap: 'anywhere'
+          }}
         >
           <div className="flex justify-between items-start">
             <ReactMarkdown
@@ -87,13 +92,30 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
                       customStyle={{ borderRadius: '0.5rem', fontSize: '0.95em', margin: 0 }}
                       {...props}
                     >
-                      {String(children)}
+                      {String(children).replace(/\n$/, '')}
                     </SyntaxHighlighter>
                   ) : (
                     <code className={className} {...props}>
                       {children}
                     </code>
                   )
+                },
+                p({ children }) {
+                  return (
+                    <p
+                      style={{
+                        margin: '0 0 0.5em 0',
+                        whiteSpace: 'pre-line',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere'
+                      }}
+                    >
+                      {children}
+                    </p>
+                  )
+                },
+                br() {
+                  return <br />
                 }
               }}
             >
