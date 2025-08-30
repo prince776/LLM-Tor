@@ -105,14 +105,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Find the last user message
     const lastUserMsgIdx = [...chat.messages].map((m) => m.role).lastIndexOf('user')
     if (lastUserMsgIdx === -1) return
+    // Store the last user message before updating chat.messages
+    const lastUserMsg = chat.messages[lastUserMsgIdx]
     // Remove the last assistant message (the response)
-    const newMessages = chat.messages.slice(0, lastUserMsgIdx + 1)
+    const newMessages = chat.messages.slice(0, lastUserMsgIdx)
     // Update chat with messages without the last assistant response
     if (chat) {
       chat.messages = newMessages
     }
     // Resend the last user message
-    const lastUserMsg = chat.messages[lastUserMsgIdx]
     if (lastUserMsg) {
       await handleSendMessage(lastUserMsg.content)
     }
