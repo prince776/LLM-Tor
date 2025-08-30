@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ArrowLeft, Moon, Sun, Bell, Shield, Download, Trash2, Upload } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { Chat } from '../types'
 
 interface SettingsPageProps {
   onBack: () => void
@@ -39,7 +40,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     if (!file) return
     try {
       const text = await file.text()
-      const importedChats = JSON.parse(text)
+      const importedChats: Chat[] = JSON.parse(text)
+      // Uniquify importedChat's IDs to avoid conflicts.
+      importedChats.forEach((chat) => {
+        chat.id = Date.now().toString() + chat.id
+      })
       const existingChats = JSON.parse(localStorage.getItem('chats') || '[]')
       // Merge arrays if both are arrays, else fallback to imported
       const mergedChats =
