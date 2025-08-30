@@ -24,7 +24,8 @@ function App() {
     createNewChat,
     deleteChat,
     addMessage,
-    getCurrentChat
+    getCurrentChat,
+    updateChatTitle
   } = useChats()
 
   const { user, isLoading } = useUser()
@@ -64,6 +65,7 @@ function App() {
             chat={getCurrentChat()}
             onSendMessage={handleSendMessage}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            onEditChatTitle={updateChatTitle}
           />
         )
     }

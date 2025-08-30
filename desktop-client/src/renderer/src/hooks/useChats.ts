@@ -98,6 +98,14 @@ export const useChats = () => {
     )
   }
 
+  const updateChatTitle = (chatId: string, newTitle: string) => {
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId ? { ...chat, title: newTitle, updatedAt: new Date() } : chat
+      )
+    )
+  }
+
   const getCurrentChat = () => {
     return chats.find((chat) => chat.id === activeChat)
   }
@@ -109,6 +117,7 @@ export const useChats = () => {
     createNewChat,
     deleteChat,
     addMessage,
-    getCurrentChat
+    getCurrentChat,
+    updateChatTitle
   }
 }

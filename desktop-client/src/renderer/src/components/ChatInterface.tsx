@@ -13,6 +13,7 @@ interface ChatInterfaceProps {
   chat: Chat | undefined
   onSendMessage: (message: string, role: 'user' | 'assistant') => void
   onToggleSidebar: () => void
+  onEditChatTitle?: (chatId: string, newTitle: string) => void
 }
 
 interface LoadingState {
@@ -23,7 +24,8 @@ interface LoadingState {
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   chat,
   onSendMessage,
-  onToggleSidebar
+  onToggleSidebar,
+  onEditChatTitle
 }) => {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
   const [loadingState, setLoadingState] = useState<LoadingState>({ isLoading: false, message: '' })
@@ -31,6 +33,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { systemPrompt } = useSettings()
   const { showError } = useError()
   const { user, decrementToken } = useUser()
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editedTitle, setEditedTitle] = useState(chat?.title || '')
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -39,6 +43,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     scrollToBottom()
   }, [chat?.messages])
+
+  useEffect(() => {
+    setEditedTitle(chat?.title || '')
+  }, [chat?.title])
 
   const handleSendMessage = async (msg: string) => {
     try {
@@ -91,6 +99,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }
 
+  const handleTitleSave = () => {
+    if (chat && editedTitle.trim() && editedTitle !== chat.title) {
+      if (onEditChatTitle) {
+        onEditChatTitle(chat.id, editedTitle.trim())
+      }
+      setIsEditingTitle(false)
+    } else {
+      setIsEditingTitle(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header */}
@@ -103,9 +122,57 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <Menu size={20} className="text-gray-600 dark:text-gray-400" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {chat?.title || 'Select a chat'}
-            </h1>
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <input
+                  className="text-lg font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  className="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={handleTitleSave}
+                >
+                  Save
+                </button>
+                <button
+                  className="px-2 py-1 text-xs rounded bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-400 dark:hover:bg-gray-600"
+                  onClick={() => {
+                    setIsEditingTitle(false)
+                    setEditedTitle(chat?.title || '')
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {chat?.title || 'Select a chat'}
+                </h1>
+                {chat && (
+                  <button
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                    onClick={() => setIsEditingTitle(true)}
+                    title="Edit chat title"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-gray-500 dark:text-gray-400"
+                    >
+                      <path d="M12 2l2 2-8 8-2 2H2v-2l2-2 8-8z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {chat?.messages.length || 0} messages
             </p>
