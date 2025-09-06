@@ -4,6 +4,7 @@ import { SERVER_URL } from '../types/config'
 import { ChatCompletion } from 'openai/src/resources/chat/completions/completions'
 import log from 'electron-log/main'
 import { doTorProxiedRequest } from './torproxy'
+import { getStore } from './local-store'
 
 export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
   const { token, signedToken, modelName } = req
@@ -15,6 +16,7 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
   })
 
   try {
+    const localStore = getStore()
     // Make a request to the OpenAI API using the provided model name
     log.info('Making LLM Proxy request with model:', modelName, 'and messages:', req.messages)
     const response = await openai.chat.completions.create(
@@ -34,6 +36,9 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
         path: reqPath
       }
     )
+
+    localStore.delete(`tokens.${modelName}`)
+    localStore.delete(`signedTokens.${modelName}`)
 
     const proxyResp = response as unknown as {
       status: string

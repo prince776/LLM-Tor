@@ -59,7 +59,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (blindedToken.error) {
         throw blindedToken.error
       }
-      decrementToken(selectedModel)
+
+      if (blindedToken.isNew) {
+        decrementToken(selectedModel)
+      }
 
       // 2. Get LLM response.
       setLoadingState({ isLoading: true, message: 'Getting LLM Response Anonymously...' })

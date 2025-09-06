@@ -3,6 +3,7 @@ import { RSAKeys, SERVER_URL } from '../types/config'
 import { getCookieHeader } from './utils'
 import log from 'electron-log/main'
 import { GenerateTokenReq, GenerateTokenResp } from '../types/ipc'
+import { getStore } from './local-store'
 
 // TODO: Improvements
 // 1. Proper retry mechanism when requesting token/ Making LLM Proxy requests.
@@ -13,6 +14,19 @@ import { GenerateTokenReq, GenerateTokenResp } from '../types/ipc'
 
 export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateTokenResp> {
   const modelName = req.modelName
+
+  const localStore = getStore()
+  const savedToken = localStore.get(`tokens.${modelName}`) as string
+  const savedSignedToken = localStore.get(`signedTokens.${modelName}`) as string
+  if (savedToken && savedSignedToken) {
+    log.info('Using saved token for model:', modelName)
+    return {
+      token: savedToken,
+      signedToken: savedSignedToken,
+      isNew: false
+    }
+  }
+
   const publicKeyPEMForModel = RSAKeys[modelName]
   if (!publicKeyPEMForModel) {
     throw `No public key found for model: ${modelName}`
@@ -66,9 +80,14 @@ export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateToke
 
   if (isValid) {
     log.info('Signature is valid! The anonymous token is ready to use. 🎉')
+
+    localStore.set(`signedTokens.${modelName}`, uint8ArrayToBase64(finalSignature))
+    localStore.set(`tokens.${modelName}`, uint8ArrayToBase64(token))
+    log.info('Saved token for model:', modelName)
     return {
       token: uint8ArrayToBase64(token),
-      signedToken: uint8ArrayToBase64(finalSignature)
+      signedToken: uint8ArrayToBase64(finalSignature),
+      isNew: true
     }
   } else {
     log.info('Signature verification failed.')
