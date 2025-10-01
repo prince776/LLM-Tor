@@ -18,7 +18,8 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
   try {
     const localStore = getStore()
     // Make a request to the OpenAI API using the provided model name
-    log.info('Making LLM Proxy request with model:', modelName, 'and messages:', req.messages)
+    log.info('Making LLM Proxy request with model:', modelName)
+    // log.info('Messages:', JSON.stringify(req.messages))
     const response = await openai.chat.completions.create(
       {
         model: modelName,

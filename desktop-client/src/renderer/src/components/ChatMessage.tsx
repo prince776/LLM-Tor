@@ -75,6 +75,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <ReactMarkdown
             remarkPlugins={[remarkMath]}
             rehypePlugins={[rehypeKatex]}
+            urlTransform={(url) => url}
             components={{
               hr() {
                 return <hr style={{ margin: '1.5em 0' }} />
@@ -108,6 +109,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               },
               li({ children }) {
                 return <li style={{ margin: '0.2em 0' }}>{children}</li>
+              },
+              img({ src, alt }) {
+                if (!src) return null
+                return (
+                  <img
+                    src={src}
+                    alt={alt || 'image'}
+                    className="rounded-md border border-gray-200 dark:border-gray-700 block my-2 cursor-default object-contain max-w-sm max-h-60"
+                  />
+                )
               }
             }}
           >

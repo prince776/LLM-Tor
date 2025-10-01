@@ -191,6 +191,8 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		}
 		reqFwd = reqFwd.WithContext(ctx)
 
+		//log.Infof(ctx, "Forwarding request %s", string(proxyReqBody))
+
 		switch intendedModel {
 		case confs.ModelGemini25Flash, confs.ModelGemini25Pro:
 			reqFwd.Header.Set("x-goog-api-key", apiKey.UnsafeString())

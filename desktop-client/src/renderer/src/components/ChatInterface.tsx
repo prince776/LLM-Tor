@@ -21,6 +21,39 @@ interface LoadingState {
   message: string
 }
 
+// Local type mirroring ChatInput's image attachment (only fields we need)
+interface ImageAttachment {
+  dataUrl: string
+  name: string
+  mime: string
+  size: number
+}
+
+// Extract image data URLs from markdown and return content parts for OpenAI
+function toOpenAIContentFromMarkdown(md: string): Array<any> | string {
+  // Match markdown images: ![alt](url)
+  const regex = /!\[[^\]]*\]\(([^\)]+)\)/g
+  const imageUrls: string[] = []
+  let match
+  while ((match = regex.exec(md)) !== null) {
+    const url = match[1]
+    if (url.startsWith('data:image/')) imageUrls.push(url)
+  }
+  // Remove image tags from text for the text part
+  const textOnly = md.replace(regex, '').trim()
+
+  if (imageUrls.length === 0) {
+    return md
+  }
+
+  const parts: any[] = []
+  if (textOnly) parts.push({ type: 'text', text: textOnly })
+  for (const url of imageUrls) {
+    parts.push({ type: 'image_url', image_url: { url } })
+  }
+  return parts
+}
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   chat,
   onSendMessage,
@@ -48,11 +81,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setEditedTitle(chat?.title || '')
   }, [chat?.title])
 
-  const handleSendMessage = async (msg: string) => {
+  const handleSendMessage = async (payload: {
+    text: string
+    images?: ImageAttachment[]
+    displayText?: string
+  }) => {
     try {
-      // 1. Get auth token.
+      // 1. Add the user's message to UI (embed images as markdown so ChatMessage shows them)
+      const displayText = payload.displayText ?? payload.text
+      onSendMessage(displayText, 'user')
+
+      // 2. Get auth token.
       setLoadingState({ isLoading: true, message: 'Generating Anonymous Token...' })
-      onSendMessage(msg, 'user')
       const blindedToken = await window.api.generateToken({
         modelName: selectedModel
       })
@@ -64,24 +104,50 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         decrementToken(selectedModel)
       }
 
-      // 2. Get LLM response.
+      // 3. Get LLM response.
       setLoadingState({ isLoading: true, message: 'Getting LLM Response Anonymously...' })
 
-      const allMessages = [
+      // Build messages for LLM, converting markdown image tags into image_url content items
+      const historyMessages = [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        ...chat.messages,
-        { role: 'user', content: msg }
+        ...((chat?.messages ?? []) as Message[])
       ]
+
+      // Convert history messages
+      const mappedHistory = historyMessages.map((m: any) => {
+        // m may be system prompt object or Message
+        const role = m.role
+        const content =
+          typeof m.content === 'string' ? toOpenAIContentFromMarkdown(m.content) : m.content
+        return { role, content }
+      })
+
+      // Current user message with potential inline images
+      const currentUserContentParts: any[] = []
+      if (payload.text && payload.text.trim()) {
+        currentUserContentParts.push({ type: 'text', text: payload.text.trim() })
+      }
+      if (payload.images && payload.images.length) {
+        for (const img of payload.images) {
+          currentUserContentParts.push({ type: 'image_url', image_url: { url: img.dataUrl } })
+        }
+      }
+
+      const allMessages = [
+        ...mappedHistory,
+        {
+          role: 'user',
+          content: currentUserContentParts.length ? currentUserContentParts : payload.text
+        }
+      ]
+
       const llmsProxyReq: LLMProxyReq = {
         token: blindedToken.token || '',
         signedToken: blindedToken.signedToken || '',
         modelName: selectedModel,
-
-        messages: allMessages.map((message: Message) => ({
-          role: message.role,
-          content: message.content
-        }))
+        messages: allMessages as any
       }
+
       const llmResp: LLMProxyResp = await window.api.llmProxy(llmsProxyReq)
       console.log('Got LLM response', llmResp)
       if (llmResp.blocked) {
@@ -92,8 +158,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         throw llmResp.error
       }
 
-      // 3. Process response and update chat.
-      const aiMsg = llmResp.data.choices[0].message.content
+      // 4. Process response and update chat.
+      const aiMsg = llmResp.data.choices[0].message.content as unknown as string
       onSendMessage(aiMsg, 'assistant')
     } catch (e) {
       showError('Error generating chat response', e)
@@ -110,16 +176,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (lastUserMsgIdx === -1) return
     // Store the last user message before updating chat.messages
     const lastUserMsg = chat.messages[lastUserMsgIdx]
-    // Remove the last assistant message (the response)
+    // Remove the last assistant message (the response) along with the last user message
     const newMessages = chat.messages.slice(0, lastUserMsgIdx)
-    // Update chat with messages without the last assistant response
     if (chat) {
       chat.messages = newMessages
     }
-    // Resend the last user message
-    if (lastUserMsg) {
-      await handleSendMessage(lastUserMsg.content)
+
+    // Parse images from markdown in last user message
+    const regex = /!\[[^\]]*\]\(([^\)]+)\)/g
+    const images: ImageAttachment[] = []
+    let match
+    while ((match = regex.exec(lastUserMsg.content)) !== null) {
+      const url = match[1]
+      if (url.startsWith('data:image/')) {
+        images.push({ dataUrl: url, name: 'image', mime: 'image/*', size: 0 })
+      }
     }
+    const textOnly = lastUserMsg.content.replace(regex, '').trim()
+
+    await handleSendMessage({ text: textOnly, images, displayText: lastUserMsg.content })
   }
 
   const handleTitleSave = () => {

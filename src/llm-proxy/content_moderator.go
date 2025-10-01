@@ -62,6 +62,7 @@ func NewContentModerator(endpoint string, apiKey string, dbHandler *models.DBHan
 }
 
 func (cm *ContentModerator) AnalyzeText(ctx context.Context, text string) (*ContentSafetyResponse, error) {
+	//return &ContentSafetyResponse{}, nil
 	categoriesAnalysis := map[string]CategoryAnalysis{}
 	blocklistsMatch := []BlocklistMatch{}
 	for textChunk := range slices.Chunk([]byte(text), textChunkingSizeForAnalysis) {
