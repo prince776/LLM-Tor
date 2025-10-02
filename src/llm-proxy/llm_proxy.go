@@ -13,6 +13,7 @@ import (
 	"llmmask/src/confs"
 	"llmmask/src/log"
 	"llmmask/src/models"
+	"maps"
 	"net/http"
 	"net/url"
 	"time"
@@ -60,6 +61,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	llmmaskData := extraBody["llmmask"]
 	delete(extraBody, "llmmask") // Drop this from going to any vendor.
 	bodyMap["extra_body"] = extraBody
+	CleanProxyRequest(bodyMap)
 
 	proxyReqBody, err := json.Marshal(bodyMap)
 	if err != nil {
@@ -141,7 +143,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 			DocID:          tokenDocID,
 			ModelName:      intendedModel,
 			CreatedAt:      time.Now().UTC(),
-			ExpiresAt:      time.Now().UTC().Add(time.Minute * 5),
+			ExpiresAt:      time.Now().UTC().Add(time.Hour * 24 * 5),
 			RequestHash:    reqHash[:],
 			CachedResponse: nil,
 		}
@@ -164,7 +166,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	}
 
 	// Content Moderation:
-	analyzeResp, err := l.contentModerator.AnalyzeText(ctx, string(proxyReqBody))
+	analyzeResp, err := l.contentModerator.AnalyzeGPTReq(ctx, proxyReqBody)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to analyze text")
 	}
@@ -233,4 +235,13 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 func DoesRequestHasIntendedModel(intendedModel confs.ModelName, req map[string]any) (bool, error) {
 	modelName := req["model"].(string)
 	return modelName == intendedModel, nil
+}
+
+func CleanProxyRequest(req map[string]any) {
+	keys := maps.Keys(req)
+	for key := range keys {
+		if key != "model" && key != "messages" {
+			delete(req, key)
+		}
+	}
 }

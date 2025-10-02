@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"github.com/cockroachdb/errors"
 	"llmmask/src/common"
+	"llmmask/src/log"
 	"llmmask/src/models"
 	"net/http"
 	"slices"
+	"strings"
 )
 
 const (
@@ -28,9 +30,14 @@ type ContentModerator struct {
 	dbHandler *models.DBHandler
 }
 
+type ContentModerationImage struct {
+	Content string `json:"content"`
+}
+
 // ContentModerationRequest represents the JSON request body for the text analysis API.
 type ContentModerationRequest struct {
-	Text string `json:"text"`
+	Text  *string                 `json:"text,omitempty"`
+	Image *ContentModerationImage `json:"image,omitempty"`
 }
 
 // ContentSafetyResponse represents the top-level JSON response from the text analysis API.
@@ -61,25 +68,49 @@ func NewContentModerator(endpoint string, apiKey string, dbHandler *models.DBHan
 	}
 }
 
-func (cm *ContentModerator) AnalyzeText(ctx context.Context, text string) (*ContentSafetyResponse, error) {
-	//return &ContentSafetyResponse{}, nil
+func (cm *ContentModerator) AnalyzeGPTReq(ctx context.Context, req []byte) (*ContentSafetyResponse, error) {
 	categoriesAnalysis := map[string]CategoryAnalysis{}
 	blocklistsMatch := []BlocklistMatch{}
-	for textChunk := range slices.Chunk([]byte(text), textChunkingSizeForAnalysis) {
-		currResp, err := cm.analyzeTextChunkWithCaching(ctx, textChunk)
+
+	contentChunker, err := NewChatGPTContentChunker(req)
+	if err != nil {
+		return nil, err
+	}
+
+	for contentChunker.HasNext(ctx) {
+		content, err := contentChunker.Next(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to read content chunk")
 		}
-		blocklistsMatch = append(blocklistsMatch, currResp.BlocklistsMatch...)
-		for _, categoryAnalysis := range currResp.CategoriesAnalysis {
-			prevAnalysis, ok := categoriesAnalysis[categoryAnalysis.Category]
-			if !ok {
-				prevAnalysis = CategoryAnalysis{Severity: 0, Category: categoryAnalysis.Category}
+
+		var chunkedContents []*Content
+		switch content.ContentType {
+		case ContentTypeImageURL:
+			chunkedContents = append(chunkedContents, content)
+		case ContentTypeText:
+			for chunkContent := range slices.Chunk([]byte(content.Data), textChunkingSizeForAnalysis) {
+				chunkedContents = append(chunkedContents, &Content{
+					Data:        string(chunkContent),
+					ContentType: content.ContentType,
+				})
 			}
-			if categoryAnalysis.Severity > prevAnalysis.Severity {
-				prevAnalysis.Severity = categoryAnalysis.Severity
+		}
+		for _, chunk := range chunkedContents {
+			currResp, err := cm.analyzeContentWithCaching(ctx, chunk)
+			if err != nil {
+				return nil, err
 			}
-			categoriesAnalysis[categoryAnalysis.Category] = prevAnalysis
+			blocklistsMatch = append(blocklistsMatch, currResp.BlocklistsMatch...)
+			for _, categoryAnalysis := range currResp.CategoriesAnalysis {
+				prevAnalysis, ok := categoriesAnalysis[categoryAnalysis.Category]
+				if !ok {
+					prevAnalysis = CategoryAnalysis{Severity: 0, Category: categoryAnalysis.Category}
+				}
+				if categoryAnalysis.Severity > prevAnalysis.Severity {
+					prevAnalysis.Severity = categoryAnalysis.Severity
+				}
+				categoriesAnalysis[categoryAnalysis.Category] = prevAnalysis
+			}
 		}
 	}
 
@@ -94,8 +125,8 @@ func (cm *ContentModerator) AnalyzeText(ctx context.Context, text string) (*Cont
 	}, nil
 }
 
-func (cm *ContentModerator) analyzeTextChunkWithCaching(ctx context.Context, text []byte) (*ContentSafetyResponse, error) {
-	md5Hash := md5.Sum(text)
+func (cm *ContentModerator) analyzeContentWithCaching(ctx context.Context, content *Content) (*ContentSafetyResponse, error) {
+	md5Hash := md5.Sum([]byte(content.Data))
 	textAnalysisID := base64.StdEncoding.EncodeToString(md5Hash[:])
 	textAnalysis := &models.TextAnalysis{
 		DocID: textAnalysisID,
@@ -106,12 +137,13 @@ func (cm *ContentModerator) analyzeTextChunkWithCaching(ctx context.Context, tex
 	}
 
 	if textAnalysis.CachedResponse != nil {
+		log.Infof(ctx, "PING: cache hit")
 		resp := &ContentSafetyResponse{}
 		err = json.Unmarshal(textAnalysis.CachedResponse, resp)
 		return resp, err
 	}
 
-	resp, err := cm.analyzeTextChunk(ctx, text)
+	resp, err := cm.analyzeContent(ctx, content)
 	if err != nil {
 		return nil, err
 	}
@@ -119,14 +151,32 @@ func (cm *ContentModerator) analyzeTextChunkWithCaching(ctx context.Context, tex
 	return resp, cm.dbHandler.Upsert(ctx, textAnalysis)
 }
 
-func (cm *ContentModerator) analyzeTextChunk(ctx context.Context, text []byte) (*ContentSafetyResponse, error) {
-	requestBody := ContentModerationRequest{Text: string(text)}
+func (cm *ContentModerator) analyzeContent(ctx context.Context, content *Content) (*ContentSafetyResponse, error) {
+	var url string
+	requestBody := ContentModerationRequest{}
+	switch content.ContentType {
+	case ContentTypeText:
+		url = fmt.Sprintf("%s/contentsafety/text:analyze?api-version=2024-09-01", cm.endpoint)
+		requestBody.Text = &content.Data
+	case ContentTypeImageURL:
+		url = fmt.Sprintf("%s/contentsafety/image:analyze?api-version=2024-09-01", cm.endpoint)
+		imgData := content.Data
+		if !strings.HasPrefix(imgData, "data:image/png;base64,") {
+			return nil, errors.New("image data should be base64")
+		}
+		requestBody.Image = &ContentModerationImage{
+			Content: strings.TrimPrefix(imgData, "data:image/png;base64,"),
+		}
+	default:
+		return nil, errors.New("unknown content type")
+	}
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal request")
 	}
 
-	url := fmt.Sprintf("%s/contentsafety/text:analyze?api-version=2024-09-01", cm.endpoint)
+	log.Infof(ctx, "PING: Analyzing content: %s, \n at URL %s", string(jsonBody), url)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create request")
