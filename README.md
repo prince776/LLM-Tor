@@ -1,9 +1,10 @@
-# LLM Mask
-
+# LLM Tor
 A anonymous layer for accessing public LLMs. The goal of this layer is to provide strong cryptographic guarantees
 on the anonymity level. Not a trust based algo "we won't log your details".
 
 The core idea is to combine Blinded Signing With an LLM-Proxy layer along with Tor.
+
+See whitepaper: https://github.com/prince776/LLM-Tor/blob/672d954ae2691ad64ffdd65ea5de7495c7bf9214/whitepaper.pdf
 
 # License
 See LICENSE file in this directory.
