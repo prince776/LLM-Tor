@@ -162,7 +162,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const aiMsg = llmResp.data.choices[0].message.content as unknown as string
       onSendMessage(aiMsg, 'assistant')
     } catch (e) {
-      showError('Error generating chat response', e)
+      console.log('Catching err e', e)
+      showError(`Error generating chat response, err: ${JSON.stringify(e)}`, e)
     } finally {
       setLoadingState({ isLoading: false, message: '' })
     }

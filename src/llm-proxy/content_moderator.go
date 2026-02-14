@@ -127,7 +127,8 @@ func (cm *ContentModerator) AnalyzeGPTReq(ctx context.Context, req []byte) (*Con
 
 func (cm *ContentModerator) analyzeContentWithCaching(ctx context.Context, content *Content) (*ContentSafetyResponse, error) {
 	md5Hash := md5.Sum([]byte(content.Data))
-	textAnalysisID := base64.StdEncoding.EncodeToString(md5Hash[:])
+	textAnalysisID := base64.URLEncoding.EncodeToString(md5Hash[:])
+
 	textAnalysis := &models.TextAnalysis{
 		DocID: textAnalysisID,
 	}
@@ -161,8 +162,13 @@ func (cm *ContentModerator) analyzeContent(ctx context.Context, content *Content
 	case ContentTypeImageURL:
 		url = fmt.Sprintf("%s/contentsafety/image:analyze?api-version=2024-09-01", cm.endpoint)
 		imgData := content.Data
-		if !strings.HasPrefix(imgData, "data:image/png;base64,") {
-			return nil, errors.New("image data should be base64")
+		// Prefix should be of any type like: data:image/<ext>;base64,
+		if !strings.HasPrefix(imgData, "data:image/") {
+			return nil, errors.New("image data format invalid, must start with 'data:image/'")
+		}
+		_, imgData, found := strings.Cut(imgData, ";base64,")
+		if !found {
+			return nil, errors.New("image data format invalid, must be base64 like 'data:image/<ext>;base64,'")
 		}
 		requestBody.Image = &ContentModerationImage{
 			Content: strings.TrimPrefix(imgData, "data:image/png;base64,"),

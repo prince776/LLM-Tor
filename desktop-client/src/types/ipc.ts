@@ -12,7 +12,7 @@ export interface GenerateTokenReq {
 export interface GenerateTokenResp {
   token?: string
   signedToken?: string
-  isNew: boolean
+  isNew?: boolean
   error?: any
 }
 

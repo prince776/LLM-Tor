@@ -40,7 +40,36 @@ func TestEncryptAndSaveKey(t *testing.T) {
 	}
 
 	dbHandler, err := models.NewDBHandler(&common.CosmosDBCredsConfig{
-		DatabaseName:     "llmmaskdev",
+		DatabaseName:     "llmtordb",
+		ConnectionString: "", // ADD
+	})
+	assert.Nil(t, err)
+	err = dbHandler.Upsert(ctx, rsaKey)
+	assert.Nil(t, err)
+}
+
+// Sample Test to save user-creds-dek.
+func TestAddUserCredsDEK(t *testing.T) {
+	ctx := context.Background()
+	kms, err := NewKMS(&common.KeyVaultCredsConfig{
+		// ADD.
+	})
+	assert.Nil(t, err)
+
+	userCredsDEKPT, err := NewRandomAESKey()
+	assert.Nil(t, err)
+
+	dekWrapped, keyID, err := kms.Encrypt(ctx, userCredsDEKPT)
+	assert.Nil(t, err, "got err %+v", err)
+
+	rsaKey := &models.DEK{
+		DocID:      userCredsDEKID,
+		DEKWrapped: []byte(dekWrapped),
+		KMSKeyID:   keyID,
+	}
+
+	dbHandler, err := models.NewDBHandler(&common.CosmosDBCredsConfig{
+		DatabaseName:     "llmtordb",
 		ConnectionString: "", // ADD
 	})
 	assert.Nil(t, err)

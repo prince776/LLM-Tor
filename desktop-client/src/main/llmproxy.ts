@@ -52,7 +52,7 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
     }
 
     if (proxyResp.data.is_blocked) {
-      log.warn('LLM Proxy request blocked:', proxyResp.data.blocked_reason)
+      log.warn('(╯°□°）╯︵ ┻━┻ LLM Proxy request blocked:', proxyResp.data.blocked_reason)
       return {
         data: undefined,
         blocked: true,

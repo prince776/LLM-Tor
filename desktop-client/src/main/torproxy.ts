@@ -46,12 +46,12 @@ export function startTorProxy(): void {
   torProcess = spawn(torPath, torArgs)
 
   torProcess.stdout?.on('data', (data: Buffer) => {
-    log.info(`Tor: ${data.toString()}`)
+    log.info(`[Tor stdout]: ${data.toString()}`)
   })
 
   // Add a listener for the stderr stream to capture error messages from Tor
   torProcess.stderr?.on('data', (data: Buffer) => {
-    log.error(`Tor stderr: ${data.toString()}`)
+    log.error(`[Tor stderr]: ${data.toString()}`)
   })
 
   torProcess.on('error', (err: Error) => {
@@ -192,9 +192,9 @@ function getTorPath(): string | null {
     }
   } else if (process.platform === 'linux') {
     if (process.arch === 'x64') {
-      torPath = path.join(basePath, 'linux-x86', 'tor', 'tor.exe')
+      torPath = path.join(basePath, 'linux-x86', 'tor', 'tor')
     } else if (process.arch === 'ia32') {
-      torPath = path.join(basePath, 'linux-i686', 'tor', 'tor.exe')
+      torPath = path.join(basePath, 'linux-i686', 'tor', 'tor')
     } else {
       log.error('Unsupported architecture on Windows:', process.arch)
       return null
