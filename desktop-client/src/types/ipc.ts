@@ -28,5 +28,7 @@ export interface LLMProxyResp {
   data?: ChatCompletion
   blocked?: boolean
   blockReason?: string
+  sizeLimitExceeded?: boolean
+  sizeLimitReason?: string
   error?: any
 }

@@ -48,6 +48,8 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
         proxy_response: string
         is_blocked: boolean
         blocked_reason?: string
+        size_limit_exceeded?: boolean
+        size_limit_reason?: string
       }
     }
 
@@ -57,6 +59,15 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
         data: undefined,
         blocked: true,
         blockReason: proxyResp.data.blocked_reason || 'Blocked by LLM Proxy'
+      }
+    }
+
+    if (proxyResp.data.size_limit_exceeded) {
+      log.warn('Chat size limit exceeded:', proxyResp.data.size_limit_reason)
+      return {
+        data: undefined,
+        sizeLimitExceeded: true,
+        sizeLimitReason: proxyResp.data.size_limit_reason || 'Chat size limit exceeded. Please start a new conversation.'
       }
     }
 

@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+const MaxRequestSizeBytes = 30000 // 30KB limit for LLM proxy requests
+
 // LLMProxy will be responsible for proxying requests, and also all the bookkeeping related to them.
 // This is needed to stop replay attacks, and also stop wastage of tokens in case of network errors.
 type LLMProxy struct {
@@ -48,6 +50,14 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check request size limit
+	if len(bodyBytes) > MaxRequestSizeBytes {
+		return &LLMProxyResponse{
+			SizeLimitExceeded: true,
+			SizeLimitReason:   "",
+		}, nil
 	}
 
 	var bodyMap map[string]any

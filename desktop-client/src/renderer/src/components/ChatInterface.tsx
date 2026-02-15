@@ -153,6 +153,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         showError(`Request Blocked: ${llmResp.blockReason ?? 'Unknown reason'}`)
         return
       }
+      if (llmResp.sizeLimitExceeded) {
+        console.log("GOT SIZE LIMIT EXCEEDED")
+        let err = llmResp.sizeLimitReason
+        if (!err) {
+          err = `Chat size limit exceeded: Please start a new conversation to continue`
+        }
+        throw err
+      }
       if (llmResp.error || !llmResp.data) {
         throw llmResp.error
       }

@@ -6,10 +6,12 @@ import (
 )
 
 type LLMProxyResponse struct {
-	IsBlocked     bool   `json:"is_blocked"`
-	BlockedReason string `json:"blocked_reason"`
-	Metadata      []byte `json:"metadata"`
-	ProxyResponse []byte `json:"proxy_response"`
+	IsBlocked         bool   `json:"is_blocked"`
+	BlockedReason     string `json:"blocked_reason"`
+	SizeLimitExceeded bool   `json:"size_limit_exceeded"`
+	SizeLimitReason   string `json:"size_limit_reason"`
+	Metadata          []byte `json:"metadata"`
+	ProxyResponse     []byte `json:"proxy_response"`
 }
 
 func (b *LLMProxyResponse) Bytes() []byte {
