@@ -104,16 +104,17 @@ async function generateSingleToken(modelName: string): Promise<GenerateTokenResp
   }
 
   const publicKey = await getCryptoKey(publicKeyPEMForModel)
+  const suite = RSABSSA.SHA384.PSS.Randomized()
 
-  // 1. Generate Blinded Token.
+  // 1. Generate Blinded Token - keep token and blindedToken together in scope
   const uniqueID = crypto.randomUUID()
   const token = new TextEncoder().encode(uniqueID)
   log.info('Initiating blind signing for token:', uniqueID)
 
-  const suite = RSABSSA.SHA384.PSS.Randomized()
-  const blindedToken = await suite.blind(publicKey, token)
+  // Blind the token and keep the blind result in local scope
+  const blindResult = await suite.blind(publicKey, token)
 
-  // 2. Get the signed blinded token from the server.
+  // 2. Get the signed blinded token from the server
   const requestID = crypto.randomUUID()
   const resp = await fetch(`${SERVER_URL}/api/v1/auth-token/${modelName}`, {
     method: 'POST',
@@ -124,29 +125,27 @@ async function generateSingleToken(modelName: string): Promise<GenerateTokenResp
     },
     body: JSON.stringify({
       RequestID: requestID,
-      BlindedToken: uint8ArrayToBase64(blindedToken.blindedMsg),
+      BlindedToken: uint8ArrayToBase64(blindResult.blindedMsg),
       ModelName: modelName
     })
   }) // TODO: Add retries.
+
   if (!resp.ok) {
     const errorData = await resp.json()
     log.info('failed to get signed blinded token', errorData)
     throw errorData
   }
+
   const data = await resp.json()
   log.info('Successfully got signed blinded token')
   const base64SignedBlinded = data.data.SignedBlindedToken
   const signedBlindedToken = base64ToUint8Array(base64SignedBlinded)
 
-  // 3. Unblind and finalize the signature.
-  const finalSignature = await suite.finalize(
-    publicKey,
-    token,
-    signedBlindedToken,
-    blindedToken.inv
-  )
+  // 3. Unblind and finalize the signature
+  // CRITICAL: Use the same token and blindResult.inv that were created at the start
+  const finalSignature = await suite.finalize(publicKey, token, signedBlindedToken, blindResult.inv)
 
-  // 4. Verify the final signature using the CryptoKey.
+  // 4. Verify the final signature using the CryptoKey
   const isValid = await suite.verify(publicKey, finalSignature, token)
 
   if (isValid) {
@@ -174,6 +173,8 @@ export async function prefetchTokens(modelName: string): Promise<void> {
 
     log.info('Prefetching', tokensNeeded, 'tokens for model:', modelName)
 
+    // Generate tokens sequentially with small delays to avoid race conditions
+    // and reduce server load
     for (let i = 0; i < tokensNeeded; i++) {
       try {
         const token = await generateSingleToken(modelName)
@@ -182,9 +183,16 @@ export async function prefetchTokens(modelName: string): Promise<void> {
           signedToken: token.signedToken || ''
         })
         log.info('Prefetched token', i + 1, 'of', tokensNeeded, 'for model:', modelName)
+
+        // Add small delay between token generations to avoid overwhelming server
+        if (i < tokensNeeded - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 200))
+        }
       } catch (err) {
         log.error('Failed to prefetch token', i + 1, 'for model:', modelName, ':', err)
         // Continue with next token even if one fails
+        // Add delay before retrying
+        await new Promise((resolve) => setTimeout(resolve, 500))
       }
     }
 
