@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { ArrowLeft, User, Mail, Save, Camera } from 'lucide-react'
+import { ArrowLeft, User, Mail, Zap } from 'lucide-react'
 import { useUser } from '../contexts/UserContext'
 import { fetchPfpWithCache } from '../utils/pfpCache'
+import { availableModels } from '../data/models'
 import { SERVER_URL } from '../config'
 
 interface ProfilePageProps {
@@ -117,6 +118,33 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
           >
             Sign Out
           </button>
+        </div>
+
+        {/* Credits Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Zap size={20} className="text-yellow-500" />
+            Available Credits
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {availableModels.map((model) => (
+              <div
+                key={model.id}
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+              >
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{model.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{model.provider}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {user.numActiveToken?.[model.id] ?? 0}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">tokens</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
