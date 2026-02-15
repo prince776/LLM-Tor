@@ -16,6 +16,7 @@ log.initialize()
 
 let mainWindow: BrowserWindow | null = null
 let authWindow: BrowserWindow | null = null
+let torIsReady = false
 const REDIRECT_PORT = 5139
 
 function createWindow(): void {
@@ -77,6 +78,7 @@ app.whenReady().then(() => {
   startTorProxy()
   waitForTor()
     .then(() => {
+      torIsReady = true
       // Send an IPC message to the renderer process
       if (mainWindow) {
         mainWindow.webContents.send('tor-ready')
@@ -98,6 +100,10 @@ app.whenReady().then(() => {
       log.error(error)
       process.exit(1)
     })
+
+  ipcMain.handle('get-tor-status', () => {
+    return torIsReady
+  })
 
   ipcMain.handle(
     'generate-token',

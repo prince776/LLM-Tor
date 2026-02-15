@@ -11,6 +11,7 @@ declare global {
       startPurchase: (payload: { transientToken: string; paddlePriceID: string; userID: string }) => Promise<void>
       onTorSetupBegin: (callback: () => void) => Promise<void>
       onTorReady: (callback: () => void) => Promise<void>
+      getTorStatus: () => Promise<boolean>
       onAuthWindowClosed: (callback: () => void) => void
     }
   }

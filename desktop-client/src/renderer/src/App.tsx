@@ -33,6 +33,20 @@ function App() {
   const { user, isLoading } = useUser()
 
   useEffect(() => {
+    // On mount, query the main process for current Tor status so reloads know state
+    const initTorStatus = async () => {
+      try {
+        if (window.api && window.api.getTorStatus) {
+          const status = await window.api.getTorStatus()
+          setTorReady(Boolean(status))
+        }
+      } catch (e) {
+        // ignore; fall back to event listeners
+      }
+    }
+
+    initTorStatus()
+
     // Listen for the 'tor-ready' IPC message
     if (window.api && window.api.onTorReady) {
       window.api.onTorSetupBegin(() => {

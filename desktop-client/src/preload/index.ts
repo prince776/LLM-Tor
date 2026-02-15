@@ -27,6 +27,9 @@ const api = {
   onTorReady: (callback: () => void) => {
     ipcRenderer.on('tor-ready', callback)
   },
+  getTorStatus: async (): Promise<boolean> => {
+    return await ipcRenderer.invoke('get-tor-status')
+  },
   onAuthWindowClosed: (callback: () => void) => {
     ipcRenderer.on('auth-window-closed', callback)
   }
