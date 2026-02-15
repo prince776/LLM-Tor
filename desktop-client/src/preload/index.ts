@@ -26,6 +26,9 @@ const api = {
   },
   onTorReady: (callback: () => void) => {
     ipcRenderer.on('tor-ready', callback)
+  },
+  onAuthWindowClosed: (callback: () => void) => {
+    ipcRenderer.on('auth-window-closed', callback)
   }
 }
 

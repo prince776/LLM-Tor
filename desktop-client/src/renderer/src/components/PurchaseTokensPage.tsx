@@ -14,7 +14,7 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
   const [selectedModel, setSelectedModel] = useState<string>('all')
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const { user, refetchUser } = useUser()
+  const { user } = useUser()
   const [packages, setPackages] = useState<TokenPackage[]>([])
 
   useEffect(() => {
@@ -74,13 +74,6 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
       // { transientToken, paddlePriceID, userID }
       // @ts-ignore (window.api is injected by preload)
       await window.api.startPurchase({ transientToken, paddlePriceID, userID: userId })
-
-      // Refetch user info to reload token balances after purchase completes
-
-      // Optionally keep the processing UI until popup completes or provide immediate feedback
-      // We'll show a notification that the purchase window has been opened.
-      // Note: the main process will reload the main window on callback (same as sign-in flow).
-      // alert('Purchase completed successfully! Your tokens have been added to your account.')
     } catch (e: unknown) {
       console.error('Purchase failed', e)
       const message = e instanceof Error ? e.message : String(e)

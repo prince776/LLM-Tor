@@ -90,6 +90,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     fetchUser()
   }, [showError])
 
+  useEffect(() => {
+    // Listen for auth window close event and refetch user
+    // @ts-ignore (window.api is injected by preload)
+    window.api?.onAuthWindowClosed?.(() => {
+      fetchUser()
+    })
+  }, [])
+
   const signIn = async () => {
     // const redirectUrl = 'llmmask://app'
     // const signInUrl = `${SERVER_URL}/api/v1/users/signin?redirect=${encodeURIComponent(redirectUrl)}`

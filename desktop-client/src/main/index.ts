@@ -162,6 +162,7 @@ app.on('before-quit', () => {
 
 function startAuthFlow(): void {
   const redirectUri = `http://127.0.0.1:${REDIRECT_PORT}/callback`
+  let serverClosed = false
 
   // Create local server to capture redirect
   const server = createServer((req, res) => {
@@ -183,10 +184,12 @@ function startAuthFlow(): void {
         } else {
           mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
         }
-        // mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
       }
 
-      server.close()
+      if (!serverClosed) {
+        serverClosed = true
+        server.close()
+      }
     } else {
       res.writeHead(404)
       res.end()
@@ -212,6 +215,19 @@ function startAuthFlow(): void {
       }
     })
 
+    // Close server when window is closed without completing the flow
+    authWindow.on('closed', () => {
+      if (!serverClosed) {
+        serverClosed = true
+        server.close()
+      }
+      // Notify renderer to refetch user after auth window closes
+      if (mainWindow) {
+        mainWindow.webContents.send('auth-window-closed')
+      }
+      authWindow = null
+    })
+
     authWindow.loadURL(signInUrl)
   })
 }
@@ -222,13 +238,14 @@ function startPurchaseFlow(payload: {
   userID: string
 }): void {
   const redirectUri = `http://127.0.0.1:${REDIRECT_PORT}/callback`
+  let serverClosed = false
 
   // Create local server to capture redirect
   const server = createServer((req, res) => {
     if (req.url?.startsWith('/callback')) {
       res.writeHead(200, { 'Content-Type': 'text/html' })
       res.end('<h1>Purchase flow completed. You can close this window.</h1>')
-      server.close()
+
       if (authWindow) {
         authWindow.close()
         authWindow = null
@@ -241,6 +258,11 @@ function startPurchaseFlow(payload: {
         } else {
           mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
         }
+      }
+
+      if (!serverClosed) {
+        serverClosed = true
+        server.close()
       }
     } else {
       res.writeHead(404)
@@ -269,6 +291,19 @@ function startPurchaseFlow(payload: {
         webSecurity: true,
         contextIsolation: true
       }
+    })
+
+    // Close server when window is closed without completing the flow
+    authWindow.on('closed', () => {
+      if (!serverClosed) {
+        serverClosed = true
+        server.close()
+      }
+      // Notify renderer to refetch user after purchase window closes
+      if (mainWindow) {
+        mainWindow.webContents.send('auth-window-closed')
+      }
+      authWindow = null
     })
 
     authWindow.loadURL(purchaseUrl)
