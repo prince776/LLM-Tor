@@ -12,7 +12,9 @@ import (
 
 func TestBulkEncryptAndSaveKeys(t *testing.T) {
 	log.Init()
-	modelsToProvision := []string{confs.ModelGemini25FlashLite, confs.ModelGemini3Flash, confs.ModelGemini3Pro}
+	modelsToProvision := []string{
+		confs.ModelChatGPT41Mini, confs.ModelChatGPT41, confs.ModelChatGPT4o, confs.ModelChatGPTo1,
+	}
 	ctx := context.Background()
 
 	// Initialize your handlers once

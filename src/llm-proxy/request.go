@@ -18,6 +18,8 @@ func DestURLForModel(modelName confs.ModelName) string {
 	switch modelName {
 	case confs.ModelGemini25Flash, confs.ModelGemini25Pro, confs.ModelGemini25FlashLite, confs.ModelGemini3Flash, confs.ModelGemini3Pro:
 		return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+	case confs.ModelChatGPT41Mini, confs.ModelChatGPT41, confs.ModelChatGPT4o, confs.ModelChatGPTo1:
+		return "https://llmtoropenai.openai.azure.com/openai/v1/chat/completions"
 	default:
 		log.Panicf("unknown model name: %s", modelName)
 		panic("unreachable")

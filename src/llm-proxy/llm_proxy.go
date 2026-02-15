@@ -195,6 +195,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		}
 		log.Infof(ctx, "Blocked due to offensive")
 	} else {
+		proxyReqBody, err = TransformProxyReqBody(intendedModel, proxyReqBody)
 		reqFwd := &http.Request{
 			Method: "POST",
 			URL:    destURL,
@@ -203,11 +204,17 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		}
 		reqFwd = reqFwd.WithContext(ctx)
 
-		//log.Infof(ctx, "Forwarding request %s", string(proxyReqBody))
+		log.Infof(ctx, "Forwarding request %s", string(proxyReqBody))
 
 		switch intendedModel {
 		case confs.ModelGemini25Flash, confs.ModelGemini25Pro, confs.ModelGemini25FlashLite, confs.ModelGemini3Flash, confs.ModelGemini3Pro:
 			reqFwd.Header.Set("x-goog-api-key", apiKey.UnsafeString())
+			reqFwd.Header.Set("Authorization", "Bearer "+apiKey.UnsafeString())
+			reqFwd.Header.Set("content-type", "application/json")
+			// TODO: Removing gzip for now, use it later.
+			reqFwd.Header.Set("Accept-Encoding", "identity")
+		case confs.ModelChatGPT41Mini, confs.ModelChatGPT41, confs.ModelChatGPT4o, confs.ModelChatGPTo1:
+			//reqFwd.Header.Set("x-goog-api-key", apiKey.UnsafeString())
 			reqFwd.Header.Set("Authorization", "Bearer "+apiKey.UnsafeString())
 			reqFwd.Header.Set("content-type", "application/json")
 			// TODO: Removing gzip for now, use it later.
@@ -254,4 +261,8 @@ func CleanProxyRequest(req map[string]any) {
 			delete(req, key)
 		}
 	}
+}
+
+func TransformProxyReqBody(modelName string, proxyReqBody []byte) ([]byte, error) {
+	return proxyReqBody, nil
 }

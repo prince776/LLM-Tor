@@ -2,6 +2,7 @@ import { LLMModel } from '../types'
 import { MODEL_IDS } from '../../../types/models'
 
 export const availableModels: LLMModel[] = [
+  // Google
   {
     id: MODEL_IDS.GEMINI_2_5_FLASH_LITE,
     name: 'Gemini 2.5 Flash Lite',
@@ -31,5 +32,30 @@ export const availableModels: LLMModel[] = [
     name: 'Gemini 3 Pro',
     provider: 'Google',
     description: "Google's MOST INTELLIGENT MODEL"
+  },
+  // OpenAI
+  {
+    id: MODEL_IDS.CHAT_GPT_4_1,
+    name: 'GPT-4.1',
+    provider: 'OpenAI',
+    description: 'Top-tier reasoning, creativity and larger context'
+  },
+  {
+    id: MODEL_IDS.CHAT_GPT_4_1_MINI,
+    name: 'GPT-4.1 Mini',
+    provider: 'OpenAI',
+    description: 'Smaller, faster, and cost-efficient variant of GPT-4.1'
+  },
+  {
+    id: MODEL_IDS.CHAT_GPT_4o,
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    description: 'Optimized for a wide range of tasks with competitive performance'
+  },
+  {
+    id: MODEL_IDS.CHAT_GPT_o1,
+    name: 'o1',
+    provider: 'OpenAI',
+    description: 'Highly efficient model for low-latency scenarios'
   }
 ]
