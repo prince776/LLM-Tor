@@ -15,7 +15,7 @@ type Page = 'chat' | 'profile' | 'settings' | 'purchase-tokens'
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('chat')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [torReady, setTorReady] = useState(true)
+  const [torReady, setTorReady] = useState(false)
 
   const {
     chats,
