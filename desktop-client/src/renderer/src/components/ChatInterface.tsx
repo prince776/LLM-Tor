@@ -100,9 +100,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         throw blindedToken.error
       }
 
-      if (blindedToken.isNew) {
-        decrementToken(selectedModel)
-      }
+      // Decrement token for every request (whether it's a new token or from the pool)
+      decrementToken(selectedModel)
 
       // 3. Get LLM response.
       setLoadingState({ isLoading: true, message: 'Getting LLM Response Anonymously...' })

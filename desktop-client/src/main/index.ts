@@ -5,11 +5,12 @@ import icon from '../../prod-deps/icon.png?asset'
 import type { GenerateTokenReq, GenerateTokenResp, LLMProxyReq, LLMProxyResp } from '../types/ipc'
 
 import log from 'electron-log/main'
-import { GenerateToken } from './rsa'
+import { GenerateToken, prefetchTokens } from './rsa'
 import { LLMProxy } from './llmproxy'
 import { doTorProxiedRequest, startTorProxy, stopTorProxy, waitForTor } from './torproxy'
 import { createServer } from 'http'
 import { SERVER_URL } from '../types/config'
+import { AVAILABLE_MODEL_IDS } from '../types/models'
 // Initialize the logger to be available in renderer process
 log.initialize()
 
@@ -83,6 +84,13 @@ app.whenReady().then(() => {
       doTorProxiedRequest('https://check.torproject.org/api/ip').then((result) => {
         result.json().then((result) => {
           log.info('Tor proxy health check:', result)
+        })
+      })
+
+      // Start prefetching tokens for all available models after Tor is ready
+      AVAILABLE_MODEL_IDS.forEach((modelName) => {
+        prefetchTokens(modelName).catch((err) => {
+          log.error('Error prefetching tokens for', modelName, 'on startup:', err)
         })
       })
     })

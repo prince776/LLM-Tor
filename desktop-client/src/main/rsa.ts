@@ -7,26 +7,97 @@ import { getStore } from './local-store'
 
 // TODO: Improvements
 // 1. Proper retry mechanism when requesting token/ Making LLM Proxy requests.
-// 2. Save tokens in local store (request more than 1 to obfuscate usage patterns).
-// 3. Store the chats in local store as well. This entire thing needs to
+// 2. Store the chats in local store as well. This entire thing needs to
 //    go to proxy server in every call.
-// 4. Forward llm-proxy request via tor port.
+// 3. Forward llm-proxy request via tor port.
+
+// Token pool configuration: number of tokens to maintain in the queue
+const TOKEN_POOL_SIZE = 5
+
+interface TokenPoolEntry {
+  token: string
+  signedToken: string
+}
+
+function getTokenPoolKey(modelName: string): string {
+  return `tokenPool.${modelName}`
+}
+
+async function getTokenPool(modelName: string): Promise<TokenPoolEntry[]> {
+  const localStore = getStore()
+  const poolData = localStore.get(getTokenPoolKey(modelName)) as string | undefined
+  if (!poolData) {
+    return []
+  }
+  try {
+    return JSON.parse(poolData)
+  } catch {
+    return []
+  }
+}
+
+async function saveTokenPool(modelName: string, pool: TokenPoolEntry[]): Promise<void> {
+  const localStore = getStore()
+  localStore.set(getTokenPoolKey(modelName), JSON.stringify(pool))
+}
+
+async function consumeTokenFromPool(modelName: string): Promise<TokenPoolEntry | null> {
+  const pool = await getTokenPool(modelName)
+  if (pool.length === 0) {
+    return null
+  }
+  const token = pool.shift()!
+  await saveTokenPool(modelName, pool)
+  return token
+}
+
+async function addTokenToPool(modelName: string, token: TokenPoolEntry): Promise<void> {
+  const pool = await getTokenPool(modelName)
+  pool.push(token)
+  await saveTokenPool(modelName, pool)
+}
+
+async function getTokenPoolSize(modelName: string): Promise<number> {
+  const pool = await getTokenPool(modelName)
+  return pool.length
+}
 
 export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateTokenResp> {
   const modelName = req.modelName
 
-  const localStore = getStore()
-  const savedToken = localStore.get(`tokens.${modelName}`) as string
-  const savedSignedToken = localStore.get(`signedTokens.${modelName}`) as string
-  if (savedToken && savedSignedToken) {
-    log.info('Using saved token for model:', modelName)
+  // Try to consume a token from the pool first
+  const pooledToken = await consumeTokenFromPool(modelName)
+  if (pooledToken) {
+    log.info('Using pooled token for model:', modelName)
+    // Start prefetching if pool is low
+    const poolSize = await getTokenPoolSize(modelName)
+    if (poolSize < TOKEN_POOL_SIZE / 2) {
+      log.info('Token pool low for', modelName, '- starting prefetch')
+      // Don't await, let it happen in background
+      prefetchTokens(modelName).catch((err) => {
+        log.error('Error prefetching tokens for', modelName, ':', err)
+      })
+    }
     return {
-      token: savedToken,
-      signedToken: savedSignedToken,
+      token: pooledToken.token,
+      signedToken: pooledToken.signedToken,
       isNew: false
     }
   }
 
+  // If no pooled tokens, generate one and start prefetching pool
+  log.info('No pooled tokens available, generating new token for:', modelName)
+  const token = await generateSingleToken(modelName)
+
+  // Start background prefetch to fill the pool
+  prefetchTokens(modelName).catch((err) => {
+    log.error('Error prefetching tokens for', modelName, ':', err)
+  })
+
+  return token
+}
+
+async function generateSingleToken(modelName: string): Promise<GenerateTokenResp> {
   const publicKeyPEMForModel = RSAKeys[modelName]
   if (!publicKeyPEMForModel) {
     throw `No public key found for model: ${modelName}`
@@ -75,15 +146,11 @@ export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateToke
     blindedToken.inv
   )
 
-  // 5. Verify the final signature using the CryptoKey.
+  // 4. Verify the final signature using the CryptoKey.
   const isValid = await suite.verify(publicKey, finalSignature, token)
 
   if (isValid) {
     log.info('Signature is valid! The anonymous token is ready to use. 🎉')
-
-    localStore.set(`signedTokens.${modelName}`, uint8ArrayToBase64(finalSignature))
-    localStore.set(`tokens.${modelName}`, uint8ArrayToBase64(token))
-    log.info('Saved token for model:', modelName)
     return {
       token: uint8ArrayToBase64(token),
       signedToken: uint8ArrayToBase64(finalSignature),
@@ -92,6 +159,38 @@ export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateToke
   } else {
     log.info('Signature verification failed.')
     throw new Error('Invalid signature.')
+  }
+}
+
+export async function prefetchTokens(modelName: string): Promise<void> {
+  try {
+    const poolSize = await getTokenPoolSize(modelName)
+    const tokensNeeded = TOKEN_POOL_SIZE - poolSize
+
+    if (tokensNeeded <= 0) {
+      log.info('Token pool for', modelName, 'is full, skipping prefetch')
+      return
+    }
+
+    log.info('Prefetching', tokensNeeded, 'tokens for model:', modelName)
+
+    for (let i = 0; i < tokensNeeded; i++) {
+      try {
+        const token = await generateSingleToken(modelName)
+        await addTokenToPool(modelName, {
+          token: token.token || '',
+          signedToken: token.signedToken || ''
+        })
+        log.info('Prefetched token', i + 1, 'of', tokensNeeded, 'for model:', modelName)
+      } catch (err) {
+        log.error('Failed to prefetch token', i + 1, 'for model:', modelName, ':', err)
+        // Continue with next token even if one fails
+      }
+    }
+
+    log.info('Prefetch completed for model:', modelName)
+  } catch (err) {
+    log.error('Prefetch failed for model:', modelName, ':', err)
   }
 }
 
