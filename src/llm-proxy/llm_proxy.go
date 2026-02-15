@@ -206,7 +206,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		//log.Infof(ctx, "Forwarding request %s", string(proxyReqBody))
 
 		switch intendedModel {
-		case confs.ModelGemini25Flash, confs.ModelGemini25Pro:
+		case confs.ModelGemini25Flash, confs.ModelGemini25Pro, confs.ModelGemini25FlashLite, confs.ModelGemini3Flash, confs.ModelGemini3Pro:
 			reqFwd.Header.Set("x-goog-api-key", apiKey.UnsafeString())
 			reqFwd.Header.Set("Authorization", "Bearer "+apiKey.UnsafeString())
 			reqFwd.Header.Set("content-type", "application/json")

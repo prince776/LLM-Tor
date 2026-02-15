@@ -15,6 +15,7 @@ import (
 	"llmmask/src/confs"
 	"llmmask/src/log"
 	"llmmask/src/models"
+	"strings"
 )
 
 type RSAKeys struct {
@@ -148,16 +149,33 @@ func RSAVerify(publicKey *rsa.PublicKey, msg, signature []byte) error {
 }
 
 func RSALoad(privateKeyPEM, publicKeyStr string) (*RSAKeys, error) {
+	privateKeyPEM = strings.TrimSpace(privateKeyPEM)
+	publicKeyStr = strings.TrimSpace(publicKeyStr)
 	block, _ := pem.Decode([]byte(privateKeyPEM))
-	if block == nil || block.Type != "PRIVATE KEY" {
+	if block == nil || (block.Type != "PRIVATE KEY" && block.Type != "RSA PRIVATE KEY") {
+		log.Infof(context.Background(), "block TYPE: %s", block.Type)
 		return nil, errors.Newf("Failed to decode PEM block containing RSA private key, block %+v", block)
 	}
 
-	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, errors.Newf("Failed to parse RSA private key: %v", err)
+	// My dumbass generate PKCS1 type in the new generator code so i have to handle it now.
+	var privateRSAKey *rsa.PrivateKey
+	if block.Type == "PRIVATE KEY" {
+		privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, errors.Newf("Failed to parse RSA private key: %v", err)
+		}
+		var ok bool
+		privateRSAKey, ok = privateKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.Newf("Failed to typecast to RSA private key")
+		}
+	} else {
+		var err error
+		privateRSAKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, errors.Newf("Failed to parse RSA private key: %v", err)
+		}
 	}
-	privateRSAKey, ok := privateKey.(*rsa.PrivateKey)
 
 	block, _ = pem.Decode([]byte(publicKeyStr))
 	if block == nil || block.Type != "PUBLIC KEY" {
@@ -177,4 +195,32 @@ func RSALoad(privateKeyPEM, publicKeyStr string) (*RSAKeys, error) {
 		PrivateKey: privateRSAKey,
 		PublicKey:  publicRSAKey,
 	}, nil
+}
+
+// GenerateRSAKeyPair creates a new 2048-bit RSA key pair in PEM format
+func GenerateRSAKeyPair() (string, string, error) {
+	// 1. Generate the private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", "", err
+	}
+
+	// 2. Encode Private Key to PEM
+	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privBytes,
+	})
+
+	// 3. Encode Public Key to PEM
+	pubBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return "", "", err
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubBytes,
+	})
+
+	return string(pubPEM), string(privPEM), nil
 }

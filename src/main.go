@@ -31,9 +31,9 @@ func main() {
 		apiKeys[modelName] = common.Map(plainAPIKeys, common.NewSecretString)
 	}
 	apiKeyManager := llm_proxy.NewAPIKeyManager(apiKeys)
-	authManagers := map[confs.ModelName]*auth.AuthManager{
-		confs.ModelGemini25Flash: auth.NewAuthManager(secrets.GetRSAKeysForModel(confs.ModelGemini25Flash)),
-		confs.ModelGemini25Pro:   auth.NewAuthManager(secrets.GetRSAKeysForModel(confs.ModelGemini25Pro)),
+	authManagers := map[confs.ModelName]*auth.AuthManager{}
+	for _, modelName := range confs.AllModels() {
+		authManagers[modelName] = auth.NewAuthManager(secrets.GetRSAKeysForModel(modelName))
 	}
 
 	dbHandler := models.DefaultDBHandler()

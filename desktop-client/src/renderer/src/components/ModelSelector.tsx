@@ -45,11 +45,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {selectedModelData?.provider}
             </span>
-            {activeTokens !== null && (
-              <span className="text-xs text-green-600 dark:text-green-400">
-                Credits left: {activeTokens}
-              </span>
-            )}
+            {/*{activeTokens !== null && (*/}
+            <span className="text-xs text-green-600 dark:text-green-400">
+              Credits left: {activeTokens ?? 0}
+            </span>
+            {/*)}*/}
           </div>
         </div>
         <ChevronDown
@@ -79,11 +79,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     {model.description}
                   </span>
-                  {tokensLeft !== undefined && (
-                    <span className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      Credits left: {tokensLeft}
-                    </span>
-                  )}
+                  {/*{tokensLeft !== undefined && (*/}
+                  <span className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    Credits left: {tokensLeft ?? 0}
+                  </span>
+                  {/*)}*/}
                 </div>
                 {selectedModel === model.id && (
                   <Check size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
