@@ -14,6 +14,8 @@ interface ChatInterfaceProps {
   onSendMessage: (message: string, role: 'user' | 'assistant') => void
   onToggleSidebar: () => void
   onEditChatTitle?: (chatId: string, newTitle: string) => void
+  onEditMessage?: (messageId: string, newContent: string) => void
+  onDeleteMessage?: (messageId: string) => void
 }
 
 interface LoadingState {
@@ -58,7 +60,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   chat,
   onSendMessage,
   onToggleSidebar,
-  onEditChatTitle
+  onEditChatTitle,
+  onEditMessage,
+  onDeleteMessage
 }) => {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
   const [loadingState, setLoadingState] = useState<LoadingState>({ isLoading: false, message: '' })
@@ -154,7 +158,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return
       }
       if (llmResp.sizeLimitExceeded) {
-        console.log("GOT SIZE LIMIT EXCEEDED")
+        console.log('GOT SIZE LIMIT EXCEEDED')
         let err = llmResp.sizeLimitReason
         if (!err) {
           err = `Chat size limit exceeded: Please start a new conversation to continue`
@@ -342,6 +346,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   message={message}
                   isLastAssistant={isLastAssistant}
                   onRegenerate={isLastAssistant ? handleRegenerateResponse : undefined}
+                  onEdit={
+                    message.role === 'user'
+                      ? (newContent) => onEditMessage?.(message.id, newContent)
+                      : undefined
+                  }
+                  onDelete={() => onDeleteMessage?.(message.id)}
                 />
               )
             })}

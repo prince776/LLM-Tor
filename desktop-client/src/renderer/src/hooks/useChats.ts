@@ -106,6 +106,38 @@ export const useChats = () => {
     )
   }
 
+  const updateMessage = (chatId: string, messageId: string, newContent: string) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id === chatId) {
+          return {
+            ...chat,
+            messages: chat.messages.map((msg) =>
+              msg.id === messageId ? { ...msg, content: newContent } : msg
+            ),
+            updatedAt: new Date()
+          }
+        }
+        return chat
+      })
+    )
+  }
+
+  const deleteMessage = (chatId: string, messageId: string) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id === chatId) {
+          return {
+            ...chat,
+            messages: chat.messages.filter((msg) => msg.id !== messageId),
+            updatedAt: new Date()
+          }
+        }
+        return chat
+      })
+    )
+  }
+
   const getCurrentChat = () => {
     return chats.find((chat) => chat.id === activeChat)
   }
@@ -118,6 +150,8 @@ export const useChats = () => {
     deleteChat,
     addMessage,
     getCurrentChat,
-    updateChatTitle
+    updateChatTitle,
+    updateMessage,
+    deleteMessage
   }
 }
