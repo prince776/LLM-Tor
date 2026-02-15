@@ -53,6 +53,14 @@ type CredsConfig struct {
 	ModelToKeyNames        map[string]string       `json:"model_to_key_names"`
 	ContentModeratorConfig *ContentModeratorConfig `json:"content_moderator_config"`
 	UserOAuthCreds         *UserOAuthCreds         `json:"user_oauth_creds"`
+	PaddleCreds            *PaddleCreds            `json:"paddle_creds"`
+}
+
+type PaddleCreds struct {
+	SecretKey   string `json:"secret_key"`
+	APIKey      string `json:"api_key"`
+	ClientToken string `json:"client_token"`
+	Environment string `json:"environment"`
 }
 
 type KeyVaultCredsConfig struct {

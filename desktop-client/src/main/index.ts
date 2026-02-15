@@ -123,6 +123,21 @@ app.whenReady().then(() => {
     startAuthFlow()
   })
 
+  // IPC to start purchase flow from renderer
+  ipcMain.handle(
+    'start-purchase',
+    (
+      _event,
+      payload: {
+        transientToken: string
+        paddlePriceID: string
+        userID: string
+      }
+    ) => {
+      startPurchaseFlow(payload)
+    }
+  )
+
   createWindow()
 
   app.on('activate', function () {
@@ -198,5 +213,64 @@ function startAuthFlow(): void {
     })
 
     authWindow.loadURL(signInUrl)
+  })
+}
+
+function startPurchaseFlow(payload: {
+  transientToken: string
+  paddlePriceID: string
+  userID: string
+}): void {
+  const redirectUri = `http://127.0.0.1:${REDIRECT_PORT}/callback`
+
+  // Create local server to capture redirect
+  const server = createServer((req, res) => {
+    if (req.url?.startsWith('/callback')) {
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end('<h1>Purchase flow completed. You can close this window.</h1>')
+      server.close()
+      if (authWindow) {
+        authWindow.close()
+        authWindow = null
+      }
+
+      // Reload main window (cookies are already saved in default session)
+      if (mainWindow) {
+        if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+          mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+        } else {
+          mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+        }
+      }
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+
+  server.listen(REDIRECT_PORT, () => {
+    const { transientToken, paddlePriceID, userID } = payload
+    const purchaseUrl = `${SERVER_URL}/api/v1/purchase?transientToken=${encodeURIComponent(
+      transientToken
+    )}&paddlePriceID=${encodeURIComponent(paddlePriceID)}&userID=${encodeURIComponent(
+      userID
+    )}&redirect=${encodeURIComponent(redirectUri)}`
+
+    // Popup window for purchase
+    authWindow = new BrowserWindow({
+      width: 700,
+      height: 800,
+      parent: mainWindow ?? undefined,
+      webPreferences: {
+        nodeIntegration: false,
+        partition: 'persist:app', // ✅ shared partition
+        enableBlinkFeatures: 'CSSBackdropFilter',
+        offscreen: false,
+        webSecurity: true,
+        contextIsolation: true
+      }
+    })
+
+    authWindow.loadURL(purchaseUrl)
   })
 }

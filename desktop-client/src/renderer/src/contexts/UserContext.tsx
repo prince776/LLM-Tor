@@ -9,6 +9,7 @@ export interface User {
   email: string
   picture: string
   numActiveToken: Record<string, number>
+  TransientToken: string
 }
 
 interface UserContextType {
@@ -16,6 +17,7 @@ interface UserContextType {
   signIn: () => Promise<void>
   signOut: () => void
   decrementToken: (model: string) => void
+  refetchUser: () => Promise<void>
   isLoading: boolean
 }
 
@@ -46,40 +48,45 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     })
   }
 
+  const fetchUser = async (): Promise<void> => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`${SERVER_URL}/api/v1/me`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const numActiveTokens: Record<string, number> = {
+          ...data.data.SubscriptionInfo?.ActiveAuthTokens
+        }
+        setUser({
+          id: data.data.id,
+          name: data.data.Name,
+          email: data.data.Email,
+          picture: data.data.ProfileImage,
+          numActiveToken: numActiveTokens,
+          TransientToken: data.data.TransientToken
+        })
+      } else if (res.status === 401) {
+        // Not authenticated
+        setUser(null)
+      } else {
+        showError('Fetch user failed, status: ' + res.status, await res.json())
+      }
+    } catch (e) {
+      showError('Fetch user failed, err: ' + e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const refetchUser = async (): Promise<void> => {
+    await fetchUser()
+  }
+
   useEffect(() => {
     // Try to load user if already signed in (with cookies)
-    const fetchUser = async () => {
-      setIsLoading(true)
-      try {
-        const res = await fetch(`${SERVER_URL}/api/v1/me`, {
-          method: 'GET',
-          credentials: 'include'
-        })
-        if (res.ok) {
-          const data = await res.json()
-          console.log('Got user', data.data)
-          const numActiveTokens: Record<string, number> = {
-            ...data.data.SubscriptionInfo?.ActiveAuthTokens
-          }
-          setUser({
-            id: data.data.id,
-            name: data.data.Name,
-            email: data.data.Email,
-            picture: data.data.ProfileImage,
-            numActiveToken: numActiveTokens
-          })
-        } else if (res.status === 401) {
-          // Not authenticated
-          setUser(null)
-        } else {
-          showError('Fetch user failed, status: ' + res.status, await res.json())
-        }
-      } catch (e) {
-        showError('Fetch user failed, err: ' + e)
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchUser()
   }, [showError])
 
@@ -94,7 +101,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const signOut = () => setUser(null)
 
   return (
-    <UserContext.Provider value={{ user, signIn, signOut, decrementToken, isLoading }}>
+    <UserContext.Provider value={{ user, signIn, signOut, decrementToken, refetchUser, isLoading }}>
       {children}
     </UserContext.Provider>
   )

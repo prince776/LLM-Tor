@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, CreditCard, Check, Star, Zap, Shield, Clock } from 'lucide-react'
+import { ArrowLeft, CreditCard, Check, Star, Zap, Shield } from 'lucide-react'
 import { availableModels } from '../data/models'
-import { TokenPackage } from '../types'
+import { TokenPackage, LLMModel } from '../types'
 import { useUser } from '../contexts/UserContext'
 import { fetchWithCache } from '../utils/pfpCache'
 import { SERVER_URL } from '../config'
@@ -14,11 +14,11 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
   const [selectedModel, setSelectedModel] = useState<string>('all')
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const { user } = useUser()
+  const { user, refetchUser } = useUser()
   const [packages, setPackages] = useState<TokenPackage[]>([])
 
   useEffect(() => {
-    fetchWithCache(`${SERVER_URL}/api/v1/model-pricing`, 10000)
+    fetchWithCache(`${SERVER_URL}/api/v1/model-pricing`, 5000)
       .then((resp) => {
         console.log(resp.data)
         const data: { Packages: TokenPackage[] } = resp.data
@@ -43,20 +43,56 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
     {} as Record<string, TokenPackage[]>
   )
 
-  const handlePurchase = async (packageId: string) => {
+  const handlePurchase = async (packageId: string): Promise<void> => {
     setSelectedPackage(packageId)
     setIsProcessing(true)
 
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      // Refetch the user to get the latest TransientToken
+      const res = await fetch(`${SERVER_URL}/api/v1/me`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch user before purchase')
+      }
+
+      const data = await res.json()
+      const transientToken: string | undefined = data?.data?.TransientToken
+      const userId: string | undefined = data?.data?.id
+
+      const pkg = packages.find((p) => p.ID === packageId)
+      const paddlePriceID = pkg?.PaddlePriceID
+
+      if (!transientToken || !userId || !paddlePriceID) {
+        throw new Error('Missing required purchase parameters')
+      }
+
+      // Call into electron backend via the preload API to open a purchase popup
+      // The main process will open a popup to `${SERVER_URL}/api/v1/purchase` with query params
+      // { transientToken, paddlePriceID, userID }
+      // @ts-ignore (window.api is injected by preload)
+      await window.api.startPurchase({ transientToken, paddlePriceID, userID: userId })
+
+      // Refetch user info to reload token balances after purchase completes
+
+      // Optionally keep the processing UI until popup completes or provide immediate feedback
+      // We'll show a notification that the purchase window has been opened.
+      // Note: the main process will reload the main window on callback (same as sign-in flow).
+      // alert('Purchase completed successfully! Your tokens have been added to your account.')
+    } catch (e: unknown) {
+      console.error('Purchase failed', e)
+      const message = e instanceof Error ? e.message : String(e)
+      alert('Purchase failed: ' + message)
+    } finally {
       setIsProcessing(false)
       setSelectedPackage(null)
-      // Show success message or redirect
-      alert('Purchase successful! Tokens have been added to your account.')
-    }, 2000)
+      await refetchUser()
+    }
   }
 
-  const getModelInfo = (modelId: string) => {
+  const getModelInfo = (modelId: string): LLMModel | undefined => {
     return availableModels.find((model) => model.id === modelId)
   }
 
@@ -107,7 +143,7 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
           </h2>
           <p className="text-base text-gray-600 dark:text-gray-400">
             To truly access LLMs privately, the BlindRSA Algorithm requires pre-purchase of tokens,
-            which can be later used, at any point of time. It's different, because it's real
+            which can be later used, at any point of time. It is different, because it is real
           </p>
         </div>
 

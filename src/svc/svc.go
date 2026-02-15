@@ -102,6 +102,8 @@ func (s *Service) Run() {
 		})
 		r.Post("/llm-proxy", s.LLMProxyHandler)
 		r.Get("/model-pricing", s.GetModelPricingHandler)
+		r.Post("/paddle/webhook", s.PaddleWebHookHandler)
+		r.Get("/purchase", s.PurchaseHandler)
 	})
 
 	// Serve React static files (from React build directory)

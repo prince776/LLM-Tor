@@ -14,6 +14,13 @@ const api = {
   startAuth: async (): Promise<void> => {
     return await ipcRenderer.invoke('start-auth')
   },
+  startPurchase: async (payload: {
+    transientToken: string
+    paddlePriceID: string
+    userID: string
+  }): Promise<void> => {
+    return await ipcRenderer.invoke('start-purchase', payload)
+  },
   onTorSetupBegin: (callback: () => void) => {
     ipcRenderer.on('tor-setup-begin', callback)
   },

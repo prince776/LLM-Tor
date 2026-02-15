@@ -21,6 +21,13 @@ type User struct {
 	SubscriptionInfo SubscriptionInfo
 
 	ProfileImage string // URL to user's profile image
+
+	// Paddle Info
+	PaddleCustomerID     string
+	PaddleSubscriptionID string
+
+	// Transient Info, not really persisted
+	TransientToken string
 }
 
 func (u *User) Container() string {
@@ -53,6 +60,6 @@ type SubscriptionInfo struct {
 type AuthTokenInfo = map[string]int
 
 type PaymentLog struct {
-	PaymentID     string
+	TransactionID string
 	TokensGranted AuthTokenInfo
 }
