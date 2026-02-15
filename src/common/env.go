@@ -54,6 +54,7 @@ type CredsConfig struct {
 	ContentModeratorConfig *ContentModeratorConfig `json:"content_moderator_config"`
 	UserOAuthCreds         *UserOAuthCreds         `json:"user_oauth_creds"`
 	PaddleCreds            *PaddleCreds            `json:"paddle_creds"`
+	ModelPackages          []ModelTokenPackage     `json:"model_packages"`
 }
 
 type PaddleCreds struct {
@@ -84,6 +85,15 @@ type ContentModeratorConfig struct {
 type UserOAuthCreds struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
+}
+
+type ModelTokenPackage struct {
+	ID            string `json:"ID,omitempty"`
+	ModelID       string `json:"ModelID"`
+	Tokens        int    `json:"Tokens"`
+	Price         string `json:"Price"`
+	Popular       bool   `json:"Popular"`
+	PaddlePriceID string `json:"PaddlePriceID,omitempty"`
 }
 
 var userOauthConf *oauth2.Config

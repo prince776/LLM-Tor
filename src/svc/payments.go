@@ -5,69 +5,17 @@ import (
 	"github.com/go-chi/render"
 	"html/template"
 	"llmmask/src/common"
-	"llmmask/src/confs"
 	"llmmask/src/log"
 	"net/http"
 )
 
-type ModelTokenPackage struct {
-	ID            string
-	ModelID       string
-	Tokens        int
-	Price         string
-	Popular       bool
-	PaddlePriceID string
-}
-
 type GetModelPricingResp struct {
-	Packages []ModelTokenPackage
-}
-
-var DefaultPackages = []ModelTokenPackage{
-	// Gemini 2.5 Flash
-	{
-		ModelID:       confs.ModelGemini25Flash,
-		Tokens:        1000,
-		Price:         "$5.00",
-		Popular:       false,
-		PaddlePriceID: "pri_01khg60f7h7xjsb50fat9w1tha",
-	},
-	{
-		ModelID: confs.ModelGemini25Flash,
-		Tokens:  2200,
-		Price:   "$10.00",
-		Popular: true,
-	},
-	{
-		ModelID: confs.ModelGemini25Flash,
-		Tokens:  5000,
-		Price:   "$20.00",
-		Popular: false,
-	},
-	// Gemini 2.5 Pro
-	{
-		ModelID: confs.ModelGemini25Pro,
-		Tokens:  100,
-		Price:   "$5.00",
-		Popular: false,
-	},
-	{
-		ModelID: confs.ModelGemini25Pro,
-		Tokens:  250,
-		Price:   "$10.00",
-		Popular: true,
-	},
-	{
-		ModelID: confs.ModelGemini25Pro,
-		Tokens:  550,
-		Price:   "$20.00",
-		Popular: false,
-	},
+	Packages []common.ModelTokenPackage
 }
 
 func (s *Service) GetModelPricingHandler(w http.ResponseWriter, r *http.Request) {
-	packages := common.DeepCopyJSONMust(DefaultPackages)
-	packages = common.Map(packages, func(p ModelTokenPackage) ModelTokenPackage {
+	packages := common.DeepCopyJSONMust(common.PlatformCredsConfig().ModelPackages)
+	packages = common.Map(packages, func(p common.ModelTokenPackage) common.ModelTokenPackage {
 		p.ID = p.ModelID + p.Price
 		return p
 	})
@@ -76,8 +24,8 @@ func (s *Service) GetModelPricingHandler(w http.ResponseWriter, r *http.Request)
 	}))
 }
 
-func (s *Service) getPackageForPriceID(priceID string) *ModelTokenPackage {
-	for _, pkg := range DefaultPackages {
+func (s *Service) getPackageForPriceID(priceID string) *common.ModelTokenPackage {
+	for _, pkg := range common.PlatformCredsConfig().ModelPackages {
 		if pkg.PaddlePriceID == priceID {
 			return &pkg
 		}
