@@ -47,7 +47,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </span>
             {activeTokens !== null && (
               <span className="text-xs text-green-600 dark:text-green-400">
-                Tokens left: {activeTokens}
+                Credits left: {activeTokens}
               </span>
             )}
           </div>
@@ -81,7 +81,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   </span>
                   {tokensLeft !== undefined && (
                     <span className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      Tokens left: {tokensLeft}
+                      Credits left: {tokensLeft}
                     </span>
                   )}
                 </div>

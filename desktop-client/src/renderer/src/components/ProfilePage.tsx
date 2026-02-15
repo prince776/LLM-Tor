@@ -140,7 +140,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {user.numActiveToken?.[model.id] ?? 0}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">tokens</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">credits</p>
                 </div>
               </div>
             ))}

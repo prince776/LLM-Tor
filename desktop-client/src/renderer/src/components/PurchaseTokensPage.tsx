@@ -101,9 +101,9 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
             <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Purchase Tokens</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Purchase Credits</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Buy request tokens for your favorite AI models
+              Buy request credits for your favorite AI models
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
         {/* Balances Section */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-            Token Balances
+            Credit Balances
           </h2>
           <div className="flex flex-wrap gap-4">
             {availableModels.map((model) => (
@@ -122,7 +122,7 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
                 <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">{model.provider}</span>
                 <span className="text-sm mt-1 text-blue-600 dark:text-blue-400 font-semibold">
-                  {user?.numActiveToken?.[model.id] ?? 0} tokens left
+                  {user?.numActiveToken?.[model.id] ?? 0} credits left
                 </span>
               </div>
             ))}
@@ -132,10 +132,10 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
         {/* Benefits Section */}
         <div className="bg-gray-100 dark:bg-gray-900/60 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-            Why Purchase Tokens?
+            Why Purchase Credits?
           </h2>
           <p className="text-base text-gray-600 dark:text-gray-400">
-            To truly access LLMs privately, the BlindRSA Algorithm requires pre-purchase of tokens,
+            To truly access LLMs privately, the BlindRSA Algorithm requires pre-purchase of credits,
             which can be later used, at any point of time. It is different, because it is real
           </p>
         </div>
@@ -219,17 +219,17 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
                           {pkg.Price}
                         </div>
                         <div className="text-gray-600 dark:text-gray-400 text-sm">
-                          {pkg.Tokens.toLocaleString()} tokens
+                          {pkg.Tokens.toLocaleString()} credits
                         </div>
                         {/*<div className="text-xs text-gray-500 dark:text-gray-500 mt-1">*/}
-                        {/*  ${((pkg.Price/ pkg.tokens) * 1000).toFixed(2)} per 1K tokens*/}
+                        {/*  ${((pkg.Price/ pkg.tokens) * 1000).toFixed(2)} per 1K credits*/}
                         {/*</div>*/}
                       </div>
 
                       <div className="space-y-2 mb-6">
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <Check size={16} className="text-green-500" />
-                          {pkg.Tokens.toLocaleString()} request tokens
+                          {pkg.Tokens.toLocaleString()} request credits
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <Check size={16} className="text-green-500" />
