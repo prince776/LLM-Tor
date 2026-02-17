@@ -20,7 +20,7 @@ interface TokenPoolEntry {
 }
 
 function getTokenPoolKey(modelName: string): string {
-  return `tokenPool.${modelName}`
+  return `_tokenPool.${modelName}`
 }
 
 async function getTokenPool(modelName: string): Promise<TokenPoolEntry[]> {
@@ -68,9 +68,9 @@ export async function GenerateToken(req: GenerateTokenReq): Promise<GenerateToke
   // Try to consume a token from the pool first
   const pooledToken = await consumeTokenFromPool(modelName)
   if (pooledToken) {
-    log.info('Using pooled token for model:', modelName)
     // Start prefetching if pool is low
     const poolSize = await getTokenPoolSize(modelName)
+    log.info('Using pooled token for model:', modelName, 'remaining tokens in pool:', poolSize)
     if (poolSize < TOKEN_POOL_SIZE / 2) {
       log.info('Token pool low for', modelName, '- starting prefetch')
       // Don't await, let it happen in background
@@ -161,31 +161,44 @@ async function generateSingleToken(modelName: string): Promise<GenerateTokenResp
   }
 }
 
-export async function prefetchTokens(modelName: string): Promise<void> {
+export async function prefetchTokens(
+  modelName: string,
+  availableTokens: number = Infinity
+): Promise<void> {
   try {
     const poolSize = await getTokenPoolSize(modelName)
     const tokensNeeded = TOKEN_POOL_SIZE - poolSize
+    // Only prefetch up to the available tokens user has for this model
+    const tokensToPrefetch = Math.min(tokensNeeded, availableTokens)
 
-    if (tokensNeeded <= 0) {
-      log.info('Token pool for', modelName, 'is full, skipping prefetch')
+    if (tokensToPrefetch <= 0) {
+      log.info('Token pool for', modelName, 'is full or no available tokens, skipping prefetch')
       return
     }
 
-    log.info('Prefetching', tokensNeeded, 'tokens for model:', modelName)
+    log.info(
+      'Prefetching',
+      tokensToPrefetch,
+      'tokens for model:',
+      modelName,
+      '(available:',
+      availableTokens,
+      ')'
+    )
 
     // Generate tokens sequentially with small delays to avoid race conditions
     // and reduce server load
-    for (let i = 0; i < tokensNeeded; i++) {
+    for (let i = 0; i < tokensToPrefetch; i++) {
       try {
         const token = await generateSingleToken(modelName)
         await addTokenToPool(modelName, {
           token: token.token || '',
           signedToken: token.signedToken || ''
         })
-        log.info('Prefetched token', i + 1, 'of', tokensNeeded, 'for model:', modelName)
+        log.info('Prefetched token', i + 1, 'of', tokensToPrefetch, 'for model:', modelName)
 
         // Add small delay between token generations to avoid overwhelming server
-        if (i < tokensNeeded - 1) {
+        if (i < tokensToPrefetch - 1) {
           await new Promise((resolve) => setTimeout(resolve, 200))
         }
       } catch (err) {

@@ -8,6 +8,7 @@ import log from 'electron-log/main'
 import { GenerateToken, prefetchTokens } from './rsa'
 import { LLMProxy } from './llmproxy'
 import { doTorProxiedRequest, startTorProxy, stopTorProxy, waitForTor } from './torproxy'
+import { getCookieHeader } from './utils'
 import { createServer } from 'http'
 import { SERVER_URL } from '../types/config'
 import { AVAILABLE_MODEL_IDS } from '../types/models'
@@ -90,11 +91,54 @@ app.whenReady().then(() => {
       })
 
       // Start prefetching tokens for all available models after Tor is ready
-      AVAILABLE_MODEL_IDS.forEach((modelName) => {
-        prefetchTokens(modelName).catch((err) => {
-          log.error('Error prefetching tokens for', modelName, 'on startup:', err)
-        })
-      })
+      // First, fetch user profile to get available tokens per model
+      ;(async () => {
+        try {
+          const response = await fetch(`${SERVER_URL}/api/v1/me`, {
+            method: 'GET',
+            headers: {
+              ...(await getCookieHeader()),
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch user profile: ${response.status}`)
+          }
+
+          const data = await response.json()
+          log.info('[Prefetch] User profile response:', JSON.stringify(data, null, 2))
+
+          // Extract available tokens - handle different possible response structures
+          const numActiveTokens: Record<string, number> =
+            data.data?.SubscriptionInfo?.ActiveAuthTokens ||
+            data.data?.numActiveToken ||
+            data.SubscriptionInfo?.ActiveAuthTokens ||
+            {}
+
+          log.info('[Prefetch] Extracted available tokens:', JSON.stringify(numActiveTokens))
+
+          // Prefetch tokens for each model, respecting available token limits
+          AVAILABLE_MODEL_IDS.forEach((modelName) => {
+            const availableTokens = numActiveTokens[modelName] ?? 0
+            log.info(`[Prefetch] Model: ${modelName}, Available: ${availableTokens}`)
+            prefetchTokens(modelName, availableTokens).catch((err) => {
+              log.error('Error prefetching tokens for', modelName, 'on startup:', err)
+            })
+          })
+        } catch (err) {
+          log.warn(
+            'Failed to fetch user profile for token prefetch, prefetching without limits:',
+            err
+          )
+          // Fallback: prefetch without limits if user fetch fails
+          AVAILABLE_MODEL_IDS.forEach((modelName) => {
+            prefetchTokens(modelName).catch((err) => {
+              log.error('Error prefetching tokens for', modelName, 'on startup:', err)
+            })
+          })
+        }
+      })()
     })
     .catch((error) => {
       log.error(error)
