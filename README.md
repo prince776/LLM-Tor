@@ -21,7 +21,7 @@ LLM-Tor breaks this linkage.
 
 The server cannot link usage to identity.
 
-⚠️ Note:
+Note:
 The LLM inference proxy currently operates over standard HTTPS. But the desktop client accesses
 it via tor exit node only. Onion only deployment is planned.
 
@@ -40,15 +40,6 @@ Protects against:
 Does not protect against:
 - Upstream LLM provider logging the "content"
 - Global network adversary
-
-## License
-
-See LICENSE file in this directory.
-For desktop-client, a separate license is present in its directory.
-
-## Public Keys For Clients
-Technically any custom client can interact with the LLMTor backend. The public keys used by the models are present at:
-`desktop-client/src/types/config.ts`
 
 ## Whitepaper
 
@@ -163,3 +154,13 @@ flowchart LR
     Proxy --> Moderation
     Proxy --> LLM
 ```
+
+## License
+
+See LICENSE file in this directory.
+For desktop-client, a separate license is present in its directory.
+
+## Public Keys For Clients
+Technically any custom client can interact with the LLMTor backend. The public keys used by the models are present at:
+`desktop-client/src/types/config.ts`
+
