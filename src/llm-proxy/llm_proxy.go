@@ -137,7 +137,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	}
 	defer common.ReleaseSemaphore(semConf)
 
-	tokenDocID := base64.StdEncoding.EncodeToString(req.Token)
+	tokenDocID := base64.StdEncoding.EncodeToString(req.Token) // TODO: Hash it
 	authToken := &models.AuthToken{
 		DocID: tokenDocID,
 	}
