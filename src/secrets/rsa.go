@@ -153,7 +153,6 @@ func RSALoad(privateKeyPEM, publicKeyStr string) (*RSAKeys, error) {
 	publicKeyStr = strings.TrimSpace(publicKeyStr)
 	block, _ := pem.Decode([]byte(privateKeyPEM))
 	if block == nil || (block.Type != "PRIVATE KEY" && block.Type != "RSA PRIVATE KEY") {
-		log.Infof(context.Background(), "block TYPE: %s", block.Type)
 		return nil, errors.Newf("Failed to decode PEM block containing RSA private key, block %+v", block)
 	}
 

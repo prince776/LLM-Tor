@@ -138,7 +138,7 @@ func (cm *ContentModerator) analyzeContentWithCaching(ctx context.Context, conte
 	}
 
 	if textAnalysis.CachedResponse != nil {
-		log.Infof(ctx, "PING: cache hit")
+		log.Infof(ctx, "cache hit for content moderation")
 		resp := &ContentSafetyResponse{}
 		err = json.Unmarshal(textAnalysis.CachedResponse, resp)
 		return resp, err
@@ -180,8 +180,6 @@ func (cm *ContentModerator) analyzeContent(ctx context.Context, content *Content
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal request")
 	}
-
-	log.Infof(ctx, "PING: Analyzing content: %s, \n at URL %s", string(jsonBody), url)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
 	if err != nil {

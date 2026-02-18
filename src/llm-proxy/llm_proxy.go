@@ -187,7 +187,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		}
 		resp := &LLMProxyResponse{}
 		err = json.Unmarshal([]byte(respPT), resp)
-		log.Infof(ctx, "Serving from cache %+v", string(respPT))
+		log.Infof(ctx, "cache hit for llm proxy")
 		return resp, err
 	}
 
@@ -219,8 +219,6 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 			Body:   io.NopCloser(bytes.NewReader(proxyReqBody)),
 		}
 		reqFwd = reqFwd.WithContext(ctx)
-
-		log.Infof(ctx, "Forwarding request %s", string(proxyReqBody))
 
 		switch intendedModel {
 		case confs.ModelGemini25Flash, confs.ModelGemini25Pro, confs.ModelGemini25FlashLite, confs.ModelGemini3Flash, confs.ModelGemini3Pro:

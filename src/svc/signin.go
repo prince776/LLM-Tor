@@ -195,7 +195,7 @@ func (s *Service) deleteAllExistingUserSessions(ctx context.Context, user *model
 		}
 	}
 
-	log.Infof(ctx, "Prev user sessions: %+v", prevSessions)
+	// TODO Do we want this behavior?
 	for _, prevSessions := range prevSessions {
 		err := s.dbHandler.Delete(ctx, prevSessions)
 		if err != nil {
