@@ -27,10 +27,8 @@ export const PurchaseTokensPage: React.FC<PurchaseTokensPageProps> = ({ onBack }
       .catch(() => setPackages([]))
   }, [])
 
-  console.log('packages: ', packages)
   const filteredPackages =
     selectedModel === 'all' ? packages : packages.filter((pkg) => pkg.ModelID === selectedModel)
-  console.log('Filtered: ', filteredPackages)
 
   const groupedPackages = filteredPackages.reduce(
     (acc, pkg) => {

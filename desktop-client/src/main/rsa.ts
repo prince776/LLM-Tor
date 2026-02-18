@@ -109,7 +109,7 @@ async function generateSingleToken(modelName: string): Promise<GenerateTokenResp
   // 1. Generate Blinded Token - keep token and blindedToken together in scope
   const uniqueID = crypto.randomUUID()
   const token = new TextEncoder().encode(uniqueID)
-  log.info('Initiating blind signing for token:', uniqueID)
+  log.info('Initiating blind signing for a new token')
 
   // Blind the token and keep the blind result in local scope
   const blindResult = await suite.blind(publicKey, token)
@@ -149,7 +149,7 @@ async function generateSingleToken(modelName: string): Promise<GenerateTokenResp
   const isValid = await suite.verify(publicKey, finalSignature, token)
 
   if (isValid) {
-    log.info('Signature is valid! The anonymous token is ready to use. 🎉')
+    log.info('Signature is valid! The anonymous token is ready to use.')
     return {
       token: uint8ArrayToBase64(token),
       signedToken: uint8ArrayToBase64(finalSignature),
