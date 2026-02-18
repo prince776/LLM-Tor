@@ -41,7 +41,8 @@ func main() {
 	contentModeratorConf := common.PlatformCredsConfig().ContentModeratorConfig
 	contentModerator := llm_proxy.NewContentModerator(contentModeratorConf.Endpoint, contentModeratorConf.APIKey, dbHandler)
 
-	server := svc.NewService(8080, authManagers, apiKeyManager, dbHandler, contentModerator)
+	kms := secrets.DefaultKMS()
+	server := svc.NewService(8080, authManagers, apiKeyManager, dbHandler, contentModerator, kms)
 	server.Run()
 	os.Exit(0)
 }

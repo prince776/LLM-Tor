@@ -67,7 +67,9 @@ export async function LLMProxy(req: LLMProxyReq): Promise<LLMProxyResp> {
       return {
         data: undefined,
         sizeLimitExceeded: true,
-        sizeLimitReason: proxyResp.data.size_limit_reason || 'Chat size limit exceeded. Please start a new conversation.'
+        sizeLimitReason:
+          proxyResp.data.size_limit_reason ||
+          'Chat size limit exceeded. Please start a new conversation.'
       }
     }
 

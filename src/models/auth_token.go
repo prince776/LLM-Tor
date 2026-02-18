@@ -19,7 +19,9 @@ type AuthToken struct {
 	CreatedAt      time.Time
 	ExpiresAt      time.Time // TODO: Have a job that clears RequestHash and CachedResponse for already expired tokens. Maybe even move them to separate collection.
 	RequestHash    []byte
-	CachedResponse []byte // To not screw over customers over flaky network.
+	CachedResponse []byte // To not screw over customers over flaky network, wrapped with DEKWrapped
+	DEKWrapped     []byte
+	DEKKMSKeyID    string
 }
 
 func (u *AuthToken) Container() string {

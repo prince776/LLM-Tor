@@ -8,6 +8,7 @@ import (
 	llm_proxy "llmmask/src/llm-proxy"
 	"llmmask/src/log"
 	"llmmask/src/models"
+	"llmmask/src/secrets"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -47,12 +48,13 @@ func NewService(
 	apiKeyManager *llm_proxy.APIKeyManager,
 	dbHandler *models.DBHandler,
 	contentModerator *llm_proxy.ContentModerator,
+	kms *secrets.AzureKMS,
 ) *Service {
 	return &Service{
 		port:         port,
 		inMemCache:   *cache.New(10*time.Minute, 20*time.Minute),
 		authManagers: authManagers,
-		llmProxy:     llm_proxy.NewLLMProxy(authManagers, apiKeyManager, dbHandler, contentModerator),
+		llmProxy:     llm_proxy.NewLLMProxy(authManagers, apiKeyManager, dbHandler, contentModerator, kms),
 		dbHandler:    dbHandler,
 	}
 }

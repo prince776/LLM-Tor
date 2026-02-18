@@ -2,7 +2,6 @@ package llm_proxy
 
 import (
 	"bytes"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	"llmmask/src/confs"
 	"llmmask/src/log"
 	"llmmask/src/models"
+	"llmmask/src/secrets"
 	"maps"
 	"net/http"
 	"net/url"
@@ -28,15 +28,17 @@ type LLMProxy struct {
 	authManagers     map[confs.ModelName]*auth.AuthManager
 	dbHandler        *models.DBHandler
 	contentModerator *ContentModerator
+	kms              *secrets.AzureKMS
 }
 
 func NewLLMProxy(authManagers map[confs.ModelName]*auth.AuthManager, apiKeyManager *APIKeyManager, dbHandler *models.DBHandler,
-	contentModerator *ContentModerator) *LLMProxy {
+	contentModerator *ContentModerator, kms *secrets.AzureKMS) *LLMProxy {
 	return &LLMProxy{
 		authManagers:     authManagers,
 		apiKeyManager:    apiKeyManager,
 		dbHandler:        dbHandler,
 		contentModerator: contentModerator,
+		kms:              kms,
 	}
 }
 
@@ -149,7 +151,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 			return nil, err
 		}
 		isFirstReq = true
-		reqHash := md5.Sum(req.Bytes())
+		reqHash := sha256.Sum256(req.Bytes())
 		authToken = &models.AuthToken{
 			DocID:          tokenDocID,
 			ModelName:      intendedModel,
@@ -170,10 +172,22 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 			return nil, errors.New("cannot reuse token for different request.")
 		}
 	}
-	// TODO: Add encryption for CachedResponse.
 	if authToken.CachedResponse != nil {
+		cachedRespWrapped := authToken.CachedResponse
+		dekWrapped := authToken.DEKWrapped
+		kmsKeyID := authToken.DEKKMSKeyID
+
+		dek, err := l.kms.Decrypt(ctx, string(dekWrapped), kmsKeyID)
+		if err != nil {
+			return nil, err
+		}
+		respPT, err := secrets.DecryptAES(string(cachedRespWrapped), string(dek))
+		if err != nil {
+			return nil, err
+		}
 		resp := &LLMProxyResponse{}
-		err = json.Unmarshal(authToken.CachedResponse, resp)
+		err = json.Unmarshal([]byte(respPT), resp)
+		log.Infof(ctx, "Serving from cache %+v", string(respPT))
 		return resp, err
 	}
 
@@ -242,7 +256,27 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 		}
 	}
 
-	authToken.CachedResponse = resp.Bytes()
+	// Save the Cached Response with encryption.
+	{
+		dekPT, err := secrets.NewRandomAESKey()
+		if err != nil {
+			return nil, err
+		}
+		cachedRespPT := resp.Bytes()
+		cachedRespWrapped, err := secrets.EncryptAES(string(cachedRespPT), string(dekPT))
+		if err != nil {
+			return nil, err
+		}
+
+		dekWrapped, kmsKeyID, err := l.kms.Encrypt(ctx, dekPT)
+		if err != nil {
+			return nil, err
+		}
+
+		authToken.CachedResponse = []byte(cachedRespWrapped)
+		authToken.DEKWrapped = []byte(dekWrapped)
+		authToken.DEKKMSKeyID = kmsKeyID
+	}
 	err = l.dbHandler.Upsert(ctx, authToken)
 	if err != nil {
 		return nil, err
