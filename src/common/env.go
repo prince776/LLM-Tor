@@ -35,6 +35,7 @@ func PlatformCredsConfigFile() string {
 }
 
 func PlatformCredsConfig() *CredsConfig {
+	// TODO: Cache and clear.
 	var data []byte
 	if !IsProd() {
 		data = Must(os.ReadFile(PlatformCredsConfigFile()))

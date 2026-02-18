@@ -5,6 +5,8 @@ LLM-Tor is a privacy-preserving proxy layer for public LLM APIs.
 It cryptographically separates payment identity from model usage using blind signatures and Tor routing so that even
 LLM-Tor cannot link identity between users and their chat content.
 
+To build the desktop-client from source, please check README in the directory `/desktop-client`.
+
 ## Why?
 
 Public LLM APIs link prompts to user accounts.

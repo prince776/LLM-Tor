@@ -27,7 +27,7 @@ func DestURLForModel(modelName confs.ModelName) string {
 }
 
 func (b *LLMProxyExtraBodyReq) Sanitize() error {
-	// TODO: Sanitize Errors, Content Moderation if legally required.
+	// TODO: Sanitize Errors.
 	return nil
 }
 

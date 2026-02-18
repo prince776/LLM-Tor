@@ -1,26 +1,18 @@
 # desktop-client
 
-An Electron application with React and TypeScript
+Electron based desktop client for LLM-Tor.
 
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-
-## Project Setup
-
-### Install
+## Development
 
 ```bash
 $ npm install
 ```
 
-### Development
-
 ```bash
 $ npm run dev
 ```
 
-### Build
+## Build
 
 ```bash
 # For windows

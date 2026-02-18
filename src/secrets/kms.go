@@ -43,6 +43,7 @@ func NewKMS(kmsCreds *common.KeyVaultCredsConfig) (*AzureKMS, error) {
 	}, nil
 }
 
+// TODO: Add caching.
 func (k *AzureKMS) Encrypt(ctx context.Context, plaintext []byte) (string, string, error) {
 	params := azkeys.KeyOperationsParameters{
 		Algorithm: to.Ptr(azkeys.JSONWebKeyEncryptionAlgorithmRSAOAEP),

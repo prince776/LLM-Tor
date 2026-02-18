@@ -3,7 +3,7 @@ package llm_proxy
 import (
 	"bytes"
 	"crypto/md5"
-	"encoding/base64"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/cockroachdb/errors"
@@ -53,6 +53,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	}
 
 	// Check request size limit
+	// TODO: Large requests with multiple credits
 	if len(bodyBytes) > MaxRequestSizeBytes {
 		return &LLMProxyResponse{
 			SizeLimitExceeded: true,
@@ -137,7 +138,7 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	}
 	defer common.ReleaseSemaphore(semConf)
 
-	tokenDocID := base64.StdEncoding.EncodeToString(req.Token) // TODO: Hash it
+	tokenDocID := models.DocIDForAuthToken(req.Token)
 	authToken := &models.AuthToken{
 		DocID: tokenDocID,
 	}
@@ -160,15 +161,16 @@ func (l *LLMProxy) ServeRequest(r *http.Request) (*LLMProxyResponse, error) {
 	}
 
 	if authToken.ExpiresAt.Before(time.Now().UTC()) {
-		return nil, errors.New("token expired")
+		return nil, errors.New("token expired, this token was already used, and any cached response  is not available.")
 	}
 	if !isFirstReq { // Avoid recomputing
-		reqHash := md5.Sum(req.Bytes())
+		reqHash := sha256.Sum256(req.Bytes())
 		// TODO: constant time comparision needed? probably not.
 		if !bytes.Equal(authToken.RequestHash, reqHash[:]) {
 			return nil, errors.New("cannot reuse token for different request.")
 		}
 	}
+	// TODO: Add encryption for CachedResponse.
 	if authToken.CachedResponse != nil {
 		resp := &LLMProxyResponse{}
 		err = json.Unmarshal(authToken.CachedResponse, resp)

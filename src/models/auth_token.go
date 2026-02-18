@@ -1,6 +1,8 @@
 package models
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"time"
 )
 
@@ -32,4 +34,9 @@ func (u *AuthToken) GetPartitionKey() string {
 	// TODO: partition key might be useful here.
 	u.PartitionKey = DefaultPartitionKey
 	return u.PartitionKey
+}
+
+func DocIDForAuthToken(token []byte) string {
+	hash := sha256.Sum256(token)
+	return base64.StdEncoding.EncodeToString(hash[:])
 }
